@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Facturación</title>
+    <title>Sistema de Facturación Automático</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.0.2/tesseract.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -61,7 +60,7 @@
 </head>
 <body>
     <header>
-        <h1>Sistema de Facturación en GitHub Pages</h1>
+        <h1>Sistema de Facturación Automático</h1>
     </header>
     <main>
         <h2>Cargar Factura PDF</h2>
@@ -89,12 +88,18 @@
             const file = fileInput.files[0];
 
             if (file) {
-                const arrayBuffer = await file.arrayBuffer();
-                const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
-                const text = await extractTextFromPDF(pdfDoc);
+                try {
+                    const arrayBuffer = await file.arrayBuffer();
+                    const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
+                    const text = await extractTextFromPDF(pdfDoc);
 
-                const data = processText(text);
-                populateTable(data);
+                    console.log("Texto extraído del PDF:", text); // Depuración
+                    const data = processText(text);
+                    populateTable(data);
+                } catch (error) {
+                    alert("Hubo un error procesando el PDF. Por favor, revisa el archivo.");
+                    console.error(error);
+                }
             }
         });
 
