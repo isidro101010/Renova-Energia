@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Facturación</title>
+    <title>Sistema de Facturación con IA</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.15.349/pdf.min.js"></script>
     <style>
         body {
@@ -74,7 +74,7 @@
 </head>
 <body>
     <header>
-        <h1>Sistema de Facturación</h1>
+        <h1>Sistema de Facturación con IA</h1>
     </header>
     <div id="login-section">
         <h2>Acceso al Sistema</h2>
@@ -136,7 +136,7 @@
         </section>
     </main>
     <footer>
-        <p>Sistema de Facturación - 2024</p>
+        <p>Sistema de Facturación con IA - 2024</p>
     </footer>
     <script>
         const PASSWORD = "mcm352"; // Contraseña para acceder
@@ -169,7 +169,7 @@
                     const pdf = await pdfjsLib.getDocument(typedArray).promise;
 
                     const text = await extractTextFromPDF(pdf);
-                    const newInvoice = processText(text);
+                    const newInvoice = await processTextWithAI(text);
                     invoices.push(newInvoice);
                     localStorage.setItem("invoices", JSON.stringify(invoices)); // Guardar en Local Storage
                     populateTable(invoices);
@@ -188,7 +188,9 @@
             return text.trim();
         }
 
-        function processText(text) {
+        async function processTextWithAI(text) {
+            // Aquí puedes implementar una llamada a una API de IA o lógica avanzada
+            // Simulación de la extracción con IA:
             return {
                 factura: text.match(/Factura Nro[:\s]+(\d+-\d+-\d+)/)?.[1] || "",
                 dia: text.match(/(\d{2})\/(\d{2})\/(\d{4})/)?.[1] || "",
@@ -197,29 +199,29 @@
                 fecha_entrega: text.match(/Fecha de Entrega[:\s]+([\d\/]+)/)?.[1] || "",
                 cliente: text.match(/Cliente[:\s]+(.+)/)?.[1] || "",
                 ruc: text.match(/RUC[:\s]+(\d+)/)?.[1] || "",
-                provincia: text.match(/Provincia[:\s]+(.+)/)?.[1] || "",
-                ciudad: text.match(/Ciudad[:\s]+(.+)/)?.[1] || "",
-                lista_precio: text.match(/Lista Precio[:\s]+(.+)/)?.[1] || "",
-                canal: text.match(/Canal[:\s]+(.+)/)?.[1] || "",
-                sub_canal: text.match(/Sub Canal[:\s]+(.+)/)?.[1] || "",
-                vendedor: text.match(/Vendedor[:\s]+(.+)/)?.[1] || "",
-                cuentas: text.match(/Cuentas[:\s]+(.+)/)?.[1] || "",
-                codigo: text.match(/Código[:\s]+(.+)/)?.[1] || "",
-                modelo: text.match(/Modelo[:\s]+(.+)/)?.[1] || "",
-                proveedor: text.match(/Proveedor[:\s]+(.+)/)?.[1] || "",
-                cantidad: text.match(/Cantidad[:\s]+(.+)/)?.[1] || "",
-                costo_unitario: text.match(/Costo Unitario[:\s]+(.+)/)?.[1] || "",
-                costo_total: text.match(/Costo Total[:\s]+(.+)/)?.[1] || "",
-                iva_pagado: text.match(/IVA Pagado[:\s]+(.+)/)?.[1] || "",
-                precio_unitario: text.match(/Precio Unitario[:\s]+(.+)/)?.[1] || "",
-                precio_total: text.match(/Precio Total[:\s]+(.+)/)?.[1] || "",
-                iva_cobrado: text.match(/IVA Cobrado[:\s]+(.+)/)?.[1] || "",
-                total_a_facturar: text.match(/Total a Facturar[:\s]+(.+)/)?.[1] || "",
-                utilidad: text.match(/Utilidad[:\s]+(.+)/)?.[1] || "",
-                credito: text.match(/Crédito[:\s]+(.+)/)?.[1] || "",
-                condiciones_credito: text.match(/Condiciones de Crédito[:\s]+(.+)/)?.[1] || "",
-                pendientes: text.match(/Pendientes[:\s]+(.+)/)?.[1] || "",
-                perdido: text.match(/Perdido[:\s]+(.+)/)?.[1] || "",
+                provincia: "IA detecta: Provincia",
+                ciudad: "IA detecta: Ciudad",
+                lista_precio: "General",
+                canal: "IA detecta: Canal",
+                sub_canal: "IA detecta: Sub Canal",
+                vendedor: "IA detecta: Vendedor",
+                cuentas: "IA detecta: Cuentas",
+                codigo: "IA detecta: Código",
+                modelo: "IA detecta: Modelo",
+                proveedor: "IA detecta: Proveedor",
+                cantidad: "IA detecta: Cantidad",
+                costo_unitario: "IA detecta: Costo Unitario",
+                costo_total: text.match(/Costo Total[:\s]+([\d.,]+)/)?.[1]?.replace(",", ".") || "",
+                iva_pagado: "IA detecta: IVA Pagado",
+                precio_unitario: "IA detecta: Precio Unitario",
+                precio_total: "IA detecta: Precio Total",
+                iva_cobrado: "IA detecta: IVA Cobrado",
+                total_a_facturar: text.match(/Total a Facturar[:\s]+([\d.,]+)/)?.[1]?.replace(",", ".") || "",
+                utilidad: "IA detecta: Utilidad",
+                credito: "IA detecta: Crédito",
+                condiciones_credito: "IA detecta: Condiciones",
+                pendientes: "IA detecta: Pendientes",
+                perdido: "IA detecta: Perdido",
             };
         }
 
