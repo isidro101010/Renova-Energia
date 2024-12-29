@@ -89,28 +89,7 @@
                         <th>RUC</th>
                         <th>Provincia</th>
                         <th>Ciudad</th>
-                        <th>Lista Precio</th>
-                        <th>Canal</th>
-                        <th>Sub Canal</th>
-                        <th>Vendedor</th>
-                        <th>Cuentas</th>
-                        <th>Código</th>
-                        <th>Modelo</th>
-                        <th>Proveedor</th>
-                        <th>Cantidad</th>
-                        <th>Costo Unitario</th>
-                        <th>Costo Total</th>
-                        <th>IVA Pagado</th>
-                        <th>Total Facturado</th>
-                        <th>Precio Unitario</th>
-                        <th>Precio Total</th>
-                        <th>IVA Cobrado</th>
-                        <th>Total a Facturar</th>
-                        <th>Utilidad</th>
-                        <th>Crédito</th>
-                        <th>Condiciones de Crédito</th>
-                        <th>Pendientes</th>
-                        <th>Perdido</th>
+                        <th>Total</th>
                         <th>Acción</th>
                     </tr>
                 </thead>
@@ -124,6 +103,12 @@
         <p>Sistema de Facturación - 2024</p>
     </footer>
     <script>
+        let invoices = JSON.parse(localStorage.getItem("invoices")) || []; // Recuperar facturas guardadas
+
+        document.addEventListener("DOMContentLoaded", () => {
+            populateTable(invoices);
+        });
+
         document.getElementById('upload-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const fileInput = document.getElementById('file-upload');
@@ -136,7 +121,12 @@
                     const pdf = await pdfjsLib.getDocument(typedArray).promise;
 
                     const text = await extractTextFromPDF(pdf);
-                    processPDFText(text);
+                    const newInvoice = processPDFText(text);
+                    if (newInvoice) {
+                        invoices.push(newInvoice);
+                        localStorage.setItem("invoices", JSON.stringify(invoices)); // Guardar en Local Storage
+                        populateTable(invoices);
+                    }
                 };
                 reader.readAsArrayBuffer(file);
             }
@@ -160,41 +150,23 @@
             const total = text.match(/Total:\s*\$?(\d+\.\d+)/)?.[1] || "N/A";
             const fecha = text.match(/Fecha:\s*(\d{2}\/\d{2}\/\d{4})/)?.[1] || "N/A";
 
-            const invoice = {
-                factura,
-                dia: "N/A",
-                mes: "N/A",
-                ano: "N/A",
-                fecha_entrega: "N/A",
-                cliente,
-                ruc,
-                provincia: "N/A",
-                ciudad: "N/A",
-                lista_precio: "N/A",
-                canal: "N/A",
-                sub_canal: "N/A",
-                vendedor: "N/A",
-                cuentas: "N/A",
-                codigo: "N/A",
-                modelo: "N/A",
-                proveedor: "N/A",
-                cantidad: "N/A",
-                costo_unitario: "N/A",
-                costo_total: "N/A",
-                iva_pagado: "N/A",
-                total_facturado: total,
-                precio_unitario: "N/A",
-                precio_total: total,
-                iva_cobrado: "N/A",
-                total_a_facturar: total,
-                utilidad: "N/A",
-                credito: "N/A",
-                condiciones_credito: "N/A",
-                pendientes: "N/A",
-                perdido: "N/A"
-            };
-
-            populateTable([invoice]);
+            if (factura !== "N/A" && cliente !== "N/A") {
+                return {
+                    factura,
+                    dia: fecha.split("/")[0] || "N/A",
+                    mes: fecha.split("/")[1] || "N/A",
+                    ano: fecha.split("/")[2] || "N/A",
+                    fecha_entrega: fecha,
+                    cliente,
+                    ruc,
+                    provincia: "N/A",
+                    ciudad: "N/A",
+                    total,
+                };
+            } else {
+                alert("No se pudo procesar el archivo. Asegúrate de que el formato sea correcto.");
+                return null;
+            }
         }
 
         function populateTable(invoices) {
@@ -213,28 +185,7 @@
                     <td>${invoice.ruc}</td>
                     <td>${invoice.provincia}</td>
                     <td>${invoice.ciudad}</td>
-                    <td>${invoice.lista_precio}</td>
-                    <td>${invoice.canal}</td>
-                    <td>${invoice.sub_canal}</td>
-                    <td>${invoice.vendedor}</td>
-                    <td>${invoice.cuentas}</td>
-                    <td>${invoice.codigo}</td>
-                    <td>${invoice.modelo}</td>
-                    <td>${invoice.proveedor}</td>
-                    <td>${invoice.cantidad}</td>
-                    <td>${invoice.costo_unitario}</td>
-                    <td>${invoice.costo_total}</td>
-                    <td>${invoice.iva_pagado}</td>
-                    <td>${invoice.total_facturado}</td>
-                    <td>${invoice.precio_unitario}</td>
-                    <td>${invoice.precio_total}</td>
-                    <td>${invoice.iva_cobrado}</td>
-                    <td>${invoice.total_a_facturar}</td>
-                    <td>${invoice.utilidad}</td>
-                    <td>${invoice.credito}</td>
-                    <td>${invoice.condiciones_credito}</td>
-                    <td>${invoice.pendientes}</td>
-                    <td>${invoice.perdido}</td>
+                    <td>${invoice.total}</td>
                     <td><button onclick="deleteRow(${index})">Borrar</button></td>
                 `;
                 tableBody.appendChild(row);
@@ -242,9 +193,24 @@
         }
 
         function deleteRow(index) {
-            const tableBody = document.getElementById('invoice-table').querySelector('tbody');
-            tableBody.deleteRow(index);
+            invoices.splice(index, 1); // Eliminar factura
+            localStorage.setItem("invoices", JSON.stringify(invoices)); // Actualizar Local Storage
+            populateTable(invoices);
         }
+
+        document.getElementById('search-bar').addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            const rows = document.querySelectorAll('#invoice-table tbody tr');
+
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                const matches = Array.from(cells).some(cell =>
+                    cell.textContent.toLowerCase().includes(query)
+                );
+                row.style.display = matches ? '' : 'none';
+            });
+        });
     </script>
 </body>
+</html>
 </html>
