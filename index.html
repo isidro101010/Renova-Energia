@@ -24,7 +24,7 @@
         }
         main {
             padding: 20px;
-            display: none; /* Ocultar hasta que se autentique */
+            display: none;
         }
         form {
             margin: 20px 0;
@@ -189,38 +189,37 @@
         }
 
         function processText(text, fileName) {
-            const defaultData = "No encontrado"; // Valor por defecto si no se encuentra información
             return {
-                factura: text.match(/FACTURA\s+(\d+-\d+-\d+)/)?.[1] || fileName,
-                dia: defaultData,
-                mes: defaultData,
-                ano: defaultData,
-                fecha_entrega: defaultData,
-                cliente: text.match(/Razón Social\/ Nombres y Apellidos:\s*(.+?)\s*RUC:/)?.[1] || defaultData,
-                ruc: text.match(/R\.U\.C\.\s+(\d+)/)?.[1] || defaultData,
-                provincia: defaultData,
-                ciudad: defaultData,
-                lista_precio: defaultData,
-                canal: defaultData,
-                sub_canal: defaultData,
-                vendedor: defaultData,
-                cuentas: defaultData,
-                codigo: defaultData,
-                modelo: defaultData,
-                proveedor: defaultData,
-                cantidad: defaultData,
-                costo_unitario: defaultData,
-                costo_total: text.match(/VALOR TOTAL\s+([\d.,]+)/)?.[1]?.replace(",", ".") || defaultData,
-                iva_pagado: defaultData,
-                precio_unitario: defaultData,
-                precio_total: defaultData,
-                iva_cobrado: defaultData,
-                total_a_facturar: defaultData,
-                utilidad: defaultData,
-                credito: defaultData,
-                condiciones_credito: defaultData,
-                pendientes: defaultData,
-                perdido: defaultData,
+                factura: text.match(/FACTURA\s+(\d+-\d+-\d+)/)?.[1] || "",
+                dia: text.match(/(\d{2})\/(\d{2})\/(\d{4})/)?.[1] || "",
+                mes: text.match(/(\d{2})\/(\d{2})\/(\d{4})/)?.[2] || "",
+                ano: text.match(/(\d{2})\/(\d{2})\/(\d{4})/)?.[3] || "",
+                fecha_entrega: text.match(/Fecha de Entrega:\s*(.+)/)?.[1] || "",
+                cliente: text.match(/Razón Social\/ Nombres y Apellidos:\s*(.+?)\s*RUC:/)?.[1] || "",
+                ruc: text.match(/R\.U\.C\.\s+(\d+)/)?.[1] || "",
+                provincia: "",
+                ciudad: "",
+                lista_precio: "",
+                canal: "",
+                sub_canal: "",
+                vendedor: text.match(/Vendedor:\s*(.+)/)?.[1] || "",
+                cuentas: "",
+                codigo: "",
+                modelo: "",
+                proveedor: "",
+                cantidad: "",
+                costo_unitario: "",
+                costo_total: text.match(/VALOR TOTAL\s+([\d.,]+)/)?.[1]?.replace(",", ".") || "",
+                iva_pagado: "",
+                precio_unitario: "",
+                precio_total: "",
+                iva_cobrado: "",
+                total_a_facturar: "",
+                utilidad: "",
+                credito: "",
+                condiciones_credito: "",
+                pendientes: "",
+                perdido: "",
             };
         }
 
