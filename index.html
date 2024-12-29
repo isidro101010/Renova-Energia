@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Facturación</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.15.349/pdf.min.js"></script>
     <style>
-        /* Estilos básicos */
         body {
             font-family: Arial, sans-serif;
             background-color: #f4f4f4;
@@ -59,19 +59,6 @@
             background-color: #005f99;
             color: white;
         }
-        .progress-bar-container {
-            width: 100%;
-            max-width: 400px;
-            background-color: #ddd;
-            border-radius: 5px;
-            overflow: hidden;
-        }
-        .progress-bar {
-            width: 0;
-            height: 20px;
-            background-color: #005f99;
-            transition: width 0.3s;
-        }
         #search-bar {
             margin-bottom: 20px;
         }
@@ -85,12 +72,9 @@
         <section id="upload-section">
             <h2>Cargar Facturas</h2>
             <form id="upload-form">
-                <input type="file" id="file-upload" accept=".xlsx,.pdf" required>
+                <input type="file" id="file-upload" accept=".pdf" required>
                 <button type="submit">Subir Factura</button>
             </form>
-            <div class="progress-bar-container">
-                <div class="progress-bar" id="progress-bar"></div>
-            </div>
             <h3>Buscar Facturas</h3>
             <input type="text" id="search-bar" placeholder="Buscar por cliente, factura, etc.">
             <table id="invoice-table">
@@ -140,64 +124,77 @@
         <p>Sistema de Facturación - 2024</p>
     </footer>
     <script>
-        document.getElementById('upload-form').addEventListener('submit', (e) => {
+        document.getElementById('upload-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const fileInput = document.getElementById('file-upload');
             const file = fileInput.files[0];
 
             if (file) {
-                const formData = new FormData();
-                formData.append('file', file);
+                const reader = new FileReader();
+                reader.onload = async function () {
+                    const typedArray = new Uint8Array(this.result);
+                    const pdf = await pdfjsLib.getDocument(typedArray).promise;
 
-                const progressBar = document.getElementById('progress-bar');
-                progressBar.style.width = "0%";
-
-                // Simula una llamada al backend para cargar el archivo
-                setTimeout(() => {
-                    progressBar.style.width = "100%";
-                    const invoices = generateMockData(); // Datos simulados
-                    populateTable(invoices);
-                }, 2000); // Simula tiempo de carga
+                    const text = await extractTextFromPDF(pdf);
+                    processPDFText(text);
+                };
+                reader.readAsArrayBuffer(file);
             }
         });
 
-        function generateMockData() {
-            // Datos simulados para la tabla
-            return [
-                {
-                    factura: "001-001-00012345",
-                    dia: "29",
-                    mes: "12",
-                    ano: "2024",
-                    fecha_entrega: "29/12/2024",
-                    cliente: "Cliente Ejemplo S.A.",
-                    ruc: "1790012345001",
-                    provincia: "Pichincha",
-                    ciudad: "Quito",
-                    lista_precio: "General",
-                    canal: "Online",
-                    sub_canal: "Directo",
-                    vendedor: "Juan Pérez",
-                    cuentas: "Cuenta Principal",
-                    codigo: "PRD001",
-                    modelo: "Modelo A",
-                    proveedor: "Proveedor Ejemplo",
-                    cantidad: "10",
-                    costo_unitario: "50.00",
-                    costo_total: "500.00",
-                    iva_pagado: "60.00",
-                    total_facturado: "560.00",
-                    precio_unitario: "56.00",
-                    precio_total: "560.00",
-                    iva_cobrado: "60.00",
-                    total_a_facturar: "560.00",
-                    utilidad: "100.00",
-                    credito: "No",
-                    condiciones_credito: "Contado",
-                    pendientes: "0",
-                    perdido: "0"
-                }
-            ];
+        async function extractTextFromPDF(pdf) {
+            let text = '';
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const content = await page.getTextContent();
+                text += content.items.map(item => item.str).join(' ');
+            }
+            return text;
+        }
+
+        function processPDFText(text) {
+            // Extraer datos clave usando expresiones regulares
+            const factura = text.match(/Factura:\s*(\d+-\d+-\d+)/)?.[1] || "N/A";
+            const cliente = text.match(/Cliente:\s*(.+?)\s*RUC:/)?.[1] || "N/A";
+            const ruc = text.match(/RUC:\s*(\d+)/)?.[1] || "N/A";
+            const total = text.match(/Total:\s*\$?(\d+\.\d+)/)?.[1] || "N/A";
+            const fecha = text.match(/Fecha:\s*(\d{2}\/\d{2}\/\d{4})/)?.[1] || "N/A";
+
+            const invoice = {
+                factura,
+                dia: "N/A",
+                mes: "N/A",
+                ano: "N/A",
+                fecha_entrega: "N/A",
+                cliente,
+                ruc,
+                provincia: "N/A",
+                ciudad: "N/A",
+                lista_precio: "N/A",
+                canal: "N/A",
+                sub_canal: "N/A",
+                vendedor: "N/A",
+                cuentas: "N/A",
+                codigo: "N/A",
+                modelo: "N/A",
+                proveedor: "N/A",
+                cantidad: "N/A",
+                costo_unitario: "N/A",
+                costo_total: "N/A",
+                iva_pagado: "N/A",
+                total_facturado: total,
+                precio_unitario: "N/A",
+                precio_total: total,
+                iva_cobrado: "N/A",
+                total_a_facturar: total,
+                utilidad: "N/A",
+                credito: "N/A",
+                condiciones_credito: "N/A",
+                pendientes: "N/A",
+                perdido: "N/A"
+            };
+
+            populateTable([invoice]);
         }
 
         function populateTable(invoices) {
