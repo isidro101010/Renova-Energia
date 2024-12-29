@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Facturación con IA</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.15.349/pdf.min.js"></script>
+    <title>Sistema de Facturación con ChatGPT</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -24,10 +23,6 @@
         }
         main {
             padding: 20px;
-            display: none;
-        }
-        form {
-            margin: 20px 0;
         }
         input, button {
             display: block;
@@ -60,203 +55,103 @@
             background-color: #005f99;
             color: white;
         }
-        #search-bar {
-            margin-bottom: 20px;
-        }
-        #login-section {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-        }
     </style>
 </head>
 <body>
     <header>
-        <h1>Sistema de Facturación con IA</h1>
+        <h1>Sistema de Facturación con ChatGPT</h1>
     </header>
-    <div id="login-section">
-        <h2>Acceso al Sistema</h2>
-        <form id="login-form">
-            <input type="password" id="password" placeholder="Contraseña" required>
-            <button type="submit">Ingresar</button>
-        </form>
-        <p id="login-error" style="color: red; display: none;">Contraseña incorrecta</p>
-    </div>
     <main>
-        <section id="upload-section">
-            <h2>Cargar Factura PDF</h2>
-            <form id="upload-form">
-                <input type="file" id="file-upload" accept=".pdf" required>
-                <button type="submit">Subir Factura</button>
-            </form>
-            <h3>Buscar Facturas</h3>
-            <input type="text" id="search-bar" placeholder="Buscar por cliente, factura, etc.">
-            <table id="invoice-table">
-                <thead>
-                    <tr>
-                        <th>Factura</th>
-                        <th>Día</th>
-                        <th>Mes</th>
-                        <th>Año</th>
-                        <th>Fecha de Entrega</th>
-                        <th>Cliente</th>
-                        <th>RUC</th>
-                        <th>Provincia</th>
-                        <th>Ciudad</th>
-                        <th>Lista Precio</th>
-                        <th>Canal</th>
-                        <th>Sub Canal</th>
-                        <th>Vendedor</th>
-                        <th>Cuentas</th>
-                        <th>Código</th>
-                        <th>Modelo</th>
-                        <th>Proveedor</th>
-                        <th>Cantidad</th>
-                        <th>Costo Unitario</th>
-                        <th>Costo Total</th>
-                        <th>IVA Pagado</th>
-                        <th>Precio Unitario</th>
-                        <th>Precio Total</th>
-                        <th>IVA Cobrado</th>
-                        <th>Total a Facturar</th>
-                        <th>Utilidad</th>
-                        <th>Crédito</th>
-                        <th>Condiciones de Crédito</th>
-                        <th>Pendientes</th>
-                        <th>Perdido</th>
-                        <th>Acción</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <!-- Aquí se mostrarán las facturas -->
-                </tbody>
-            </table>
-        </section>
+        <h2>Cargar Factura PDF</h2>
+        <form id="upload-form">
+            <input type="file" id="file-upload" accept=".pdf" required>
+            <button type="submit">Subir Factura</button>
+        </form>
+        <h3>Resultados</h3>
+        <table id="invoice-table">
+            <thead>
+                <tr>
+                    <th>Factura</th>
+                    <th>Día</th>
+                    <th>Mes</th>
+                    <th>Año</th>
+                    <th>Fecha de Entrega</th>
+                    <th>Cliente</th>
+                    <th>RUC</th>
+                    <th>Provincia</th>
+                    <th>Ciudad</th>
+                    <th>Lista Precio</th>
+                    <th>Canal</th>
+                    <th>Sub Canal</th>
+                    <th>Vendedor</th>
+                    <th>Cuentas</th>
+                    <th>Código</th>
+                    <th>Modelo</th>
+                    <th>Proveedor</th>
+                    <th>Cantidad</th>
+                    <th>Costo Unitario</th>
+                    <th>Costo Total</th>
+                    <th>IVA Pagado</th>
+                    <th>Precio Unitario</th>
+                    <th>Precio Total</th>
+                    <th>IVA Cobrado</th>
+                    <th>Total a Facturar</th>
+                    <th>Utilidad</th>
+                    <th>Crédito</th>
+                    <th>Condiciones de Crédito</th>
+                    <th>Pendientes</th>
+                    <th>Perdido</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Aquí se mostrarán las facturas -->
+            </tbody>
+        </table>
     </main>
-    <footer>
-        <p>Sistema de Facturación con IA - 2024</p>
-    </footer>
     <script>
-        const PASSWORD = "mcm352"; // Contraseña para acceder
-        let invoices = JSON.parse(localStorage.getItem("invoices")) || []; // Recuperar facturas guardadas
-
-        document.getElementById("login-form").addEventListener("submit", (e) => {
-            e.preventDefault();
-            const password = document.getElementById("password").value;
-            if (password === PASSWORD) {
-                document.getElementById("login-section").style.display = "none";
-                document.querySelector("main").style.display = "block";
-            } else {
-                document.getElementById("login-error").style.display = "block";
-            }
-        });
-
-        document.addEventListener("DOMContentLoaded", () => {
-            populateTable(invoices);
-        });
-
         document.getElementById('upload-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const fileInput = document.getElementById('file-upload');
             const file = fileInput.files[0];
 
             if (file) {
-                const reader = new FileReader();
-                reader.onload = async function () {
-                    const typedArray = new Uint8Array(this.result);
-                    const pdf = await pdfjsLib.getDocument(typedArray).promise;
+                const formData = new FormData();
+                formData.append('file', file);
 
-                    const text = await extractTextFromPDF(pdf);
-                    const newInvoice = await processTextWithAI(text);
-                    invoices.push(newInvoice);
-                    localStorage.setItem("invoices", JSON.stringify(invoices)); // Guardar en Local Storage
-                    populateTable(invoices);
-                };
-                reader.readAsArrayBuffer(file);
+                const response = await fetch('http://localhost:3000/upload', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    populateTable(data);
+                } else {
+                    alert('Error procesando el archivo.');
+                }
             }
         });
 
-        async function extractTextFromPDF(pdf) {
-            let text = '';
-            for (let i = 1; i <= pdf.numPages; i++) {
-                const page = await pdf.getPage(i);
-                const content = await page.getTextContent();
-                text += content.items.map(item => item.str).join(' ') + '\n';
-            }
-            return text.trim();
-        }
-
-        async function processTextWithAI(text) {
-            // Aquí puedes implementar una llamada a una API de IA o lógica avanzada
-            // Simulación de la extracción con IA:
-            return {
-                factura: text.match(/Factura Nro[:\s]+(\d+-\d+-\d+)/)?.[1] || "",
-                dia: text.match(/(\d{2})\/(\d{2})\/(\d{4})/)?.[1] || "",
-                mes: text.match(/(\d{2})\/(\d{2})\/(\d{4})/)?.[2] || "",
-                ano: text.match(/(\d{2})\/(\d{2})\/(\d{4})/)?.[3] || "",
-                fecha_entrega: text.match(/Fecha de Entrega[:\s]+([\d\/]+)/)?.[1] || "",
-                cliente: text.match(/Cliente[:\s]+(.+)/)?.[1] || "",
-                ruc: text.match(/RUC[:\s]+(\d+)/)?.[1] || "",
-                provincia: "IA detecta: Provincia",
-                ciudad: "IA detecta: Ciudad",
-                lista_precio: "General",
-                canal: "IA detecta: Canal",
-                sub_canal: "IA detecta: Sub Canal",
-                vendedor: "IA detecta: Vendedor",
-                cuentas: "IA detecta: Cuentas",
-                codigo: "IA detecta: Código",
-                modelo: "IA detecta: Modelo",
-                proveedor: "IA detecta: Proveedor",
-                cantidad: "IA detecta: Cantidad",
-                costo_unitario: "IA detecta: Costo Unitario",
-                costo_total: text.match(/Costo Total[:\s]+([\d.,]+)/)?.[1]?.replace(",", ".") || "",
-                iva_pagado: "IA detecta: IVA Pagado",
-                precio_unitario: "IA detecta: Precio Unitario",
-                precio_total: "IA detecta: Precio Total",
-                iva_cobrado: "IA detecta: IVA Cobrado",
-                total_a_facturar: text.match(/Total a Facturar[:\s]+([\d.,]+)/)?.[1]?.replace(",", ".") || "",
-                utilidad: "IA detecta: Utilidad",
-                credito: "IA detecta: Crédito",
-                condiciones_credito: "IA detecta: Condiciones",
-                pendientes: "IA detecta: Pendientes",
-                perdido: "IA detecta: Perdido",
-            };
-        }
-
-        function populateTable(invoices) {
+        function populateTable(data) {
             const tableBody = document.getElementById('invoice-table').querySelector('tbody');
-            tableBody.innerHTML = ''; // Limpiar datos previos
+            tableBody.innerHTML = '';
+            const row = document.createElement('tr');
 
-            invoices.forEach((invoice, index) => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    ${Object.values(invoice).map(value => `<td>${value}</td>`).join('')}
-                    <td><button onclick="deleteRow(${index})">Borrar</button></td>
-                `;
-                tableBody.appendChild(row);
+            const fields = [
+                'factura', 'dia', 'mes', 'ano', 'fecha_entrega', 'cliente', 'ruc', 'provincia', 'ciudad',
+                'lista_precio', 'canal', 'sub_canal', 'vendedor', 'cuentas', 'codigo', 'modelo', 'proveedor',
+                'cantidad', 'costo_unitario', 'costo_total', 'iva_pagado', 'precio_unitario', 'precio_total',
+                'iva_cobrado', 'total_a_facturar', 'utilidad', 'credito', 'condiciones_credito', 'pendientes', 'perdido'
+            ];
+
+            fields.forEach(field => {
+                const cell = document.createElement('td');
+                cell.textContent = data[field] || '';
+                row.appendChild(cell);
             });
+
+            tableBody.appendChild(row);
         }
-
-        function deleteRow(index) {
-            invoices.splice(index, 1); // Eliminar factura
-            localStorage.setItem("invoices", JSON.stringify(invoices)); // Actualizar Local Storage
-            populateTable(invoices);
-        }
-
-        document.getElementById('search-bar').addEventListener('input', (e) => {
-            const query = e.target.value.toLowerCase();
-            const rows = document.querySelectorAll('#invoice-table tbody tr');
-
-            rows.forEach(row => {
-                const cells = row.querySelectorAll('td');
-                const matches = Array.from(cells).some(cell =>
-                    cell.textContent.toLowerCase().includes(query)
-                );
-                row.style.display = matches ? '' : 'none';
-            });
-        });
     </script>
 </body>
 </html>
