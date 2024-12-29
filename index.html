@@ -189,43 +189,37 @@
         }
 
         function processText(text) {
-            const factura = text.match(/Factura Nro[:\s]+(\d+-\d+-\d+)/)?.[1] || "";
-            const cliente = text.match(/Cliente[:\s]+(.+)/)?.[1] || "";
-            const ruc = text.match(/RUC[:\s]+(\d+)/)?.[1] || "";
-            const fechaEntrega = text.match(/Fecha de Entrega[:\s]+([\d\/]+)/)?.[1] || "";
-            const totalFacturado = text.match(/VALOR TOTAL[:\s]+([\d.,]+)/)?.[1]?.replace(",", ".") || "";
-
             return {
-                factura,
-                dia: fechaEntrega.split("/")[0] || "",
-                mes: fechaEntrega.split("/")[1] || "",
-                ano: fechaEntrega.split("/")[2] || "",
-                fecha_entrega: fechaEntrega,
-                cliente,
-                ruc,
-                provincia: "",
-                ciudad: "",
-                lista_precio: "",
-                canal: "",
-                sub_canal: "",
-                vendedor: "",
-                cuentas: "",
-                codigo: "",
-                modelo: "",
-                proveedor: "",
-                cantidad: "",
-                costo_unitario: "",
-                costo_total: totalFacturado,
-                iva_pagado: "",
-                precio_unitario: "",
-                precio_total: "",
-                iva_cobrado: "",
-                total_a_facturar: totalFacturado,
-                utilidad: "",
-                credito: "",
-                condiciones_credito: "",
-                pendientes: "",
-                perdido: "",
+                factura: text.match(/Factura Nro[:\s]+(\d+-\d+-\d+)/)?.[1] || "",
+                dia: text.match(/(\d{2})\/(\d{2})\/(\d{4})/)?.[1] || "",
+                mes: text.match(/(\d{2})\/(\d{2})\/(\d{4})/)?.[2] || "",
+                ano: text.match(/(\d{2})\/(\d{2})\/(\d{4})/)?.[3] || "",
+                fecha_entrega: text.match(/Fecha de Entrega[:\s]+([\d\/]+)/)?.[1] || "",
+                cliente: text.match(/Cliente[:\s]+(.+)/)?.[1] || "",
+                ruc: text.match(/RUC[:\s]+(\d+)/)?.[1] || "",
+                provincia: text.match(/Provincia[:\s]+(.+)/)?.[1] || "",
+                ciudad: text.match(/Ciudad[:\s]+(.+)/)?.[1] || "",
+                lista_precio: text.match(/Lista Precio[:\s]+(.+)/)?.[1] || "",
+                canal: text.match(/Canal[:\s]+(.+)/)?.[1] || "",
+                sub_canal: text.match(/Sub Canal[:\s]+(.+)/)?.[1] || "",
+                vendedor: text.match(/Vendedor[:\s]+(.+)/)?.[1] || "",
+                cuentas: text.match(/Cuentas[:\s]+(.+)/)?.[1] || "",
+                codigo: text.match(/Código[:\s]+(.+)/)?.[1] || "",
+                modelo: text.match(/Modelo[:\s]+(.+)/)?.[1] || "",
+                proveedor: text.match(/Proveedor[:\s]+(.+)/)?.[1] || "",
+                cantidad: text.match(/Cantidad[:\s]+(.+)/)?.[1] || "",
+                costo_unitario: text.match(/Costo Unitario[:\s]+(.+)/)?.[1] || "",
+                costo_total: text.match(/Costo Total[:\s]+(.+)/)?.[1] || "",
+                iva_pagado: text.match(/IVA Pagado[:\s]+(.+)/)?.[1] || "",
+                precio_unitario: text.match(/Precio Unitario[:\s]+(.+)/)?.[1] || "",
+                precio_total: text.match(/Precio Total[:\s]+(.+)/)?.[1] || "",
+                iva_cobrado: text.match(/IVA Cobrado[:\s]+(.+)/)?.[1] || "",
+                total_a_facturar: text.match(/Total a Facturar[:\s]+(.+)/)?.[1] || "",
+                utilidad: text.match(/Utilidad[:\s]+(.+)/)?.[1] || "",
+                credito: text.match(/Crédito[:\s]+(.+)/)?.[1] || "",
+                condiciones_credito: text.match(/Condiciones de Crédito[:\s]+(.+)/)?.[1] || "",
+                pendientes: text.match(/Pendientes[:\s]+(.+)/)?.[1] || "",
+                perdido: text.match(/Perdido[:\s]+(.+)/)?.[1] || "",
             };
         }
 
