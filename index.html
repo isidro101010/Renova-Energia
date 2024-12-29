@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Facturación</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.15.349/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.5/xlsx.full.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -70,10 +71,10 @@
     </header>
     <main>
         <section id="upload-section">
-            <h2>Cargar Factura PDF</h2>
+            <h2>Cargar Archivo</h2>
             <form id="upload-form">
-                <input type="file" id="file-upload" accept=".pdf" required>
-                <button type="submit">Subir Factura</button>
+                <input type="file" id="file-upload" accept=".pdf,.xlsx" required>
+                <button type="submit">Subir Archivo</button>
             </form>
             <h3>Buscar Facturas</h3>
             <input type="text" id="search-bar" placeholder="Buscar por cliente, factura, etc.">
@@ -84,7 +85,6 @@
                         <th>Día</th>
                         <th>Mes</th>
                         <th>Año</th>
-                        <th>Fecha de Entrega</th>
                         <th>Cliente</th>
                         <th>RUC</th>
                         <th>Código</th>
@@ -119,22 +119,34 @@
             const file = fileInput.files[0];
 
             if (file) {
-                const reader = new FileReader();
-                reader.onload = async function () {
-                    const typedArray = new Uint8Array(this.result);
-                    const pdf = await pdfjsLib.getDocument(typedArray).promise;
+                const extension = file.name.split('.').pop().toLowerCase();
 
-                    const text = await extractTextFromPDF(pdf);
-                    const newInvoice = extractDataFromPDF(text);
-                    if (newInvoice) {
-                        invoices.push(...newInvoice);
-                        localStorage.setItem("invoices", JSON.stringify(invoices)); // Guardar en Local Storage
-                        populateTable(invoices);
-                    }
-                };
-                reader.readAsArrayBuffer(file);
+                if (extension === "pdf") {
+                    processPDF(file);
+                } else if (extension === "xlsx") {
+                    processExcel(file);
+                }
             }
         });
+
+        function processPDF(file) {
+            const reader = new FileReader();
+            reader.onload = async function () {
+                const typedArray = new Uint8Array(this.result);
+                const pdf = await pdfjsLib.getDocument(typedArray).promise;
+
+                const text = await extractTextFromPDF(pdf);
+                const newInvoice = extractDataFromPDF(text);
+                if (newInvoice.length > 0) {
+                    invoices.push(...newInvoice);
+                    localStorage.setItem("invoices", JSON.stringify(invoices)); // Guardar en Local Storage
+                    populateTable(invoices);
+                } else {
+                    alert("No se encontró información válida en el PDF.");
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
 
         async function extractTextFromPDF(pdf) {
             let text = '';
@@ -147,20 +159,22 @@
         }
 
         function extractDataFromPDF(text) {
-            // Extraer datos clave del texto
             const factura = text.match(/FACTURA\s+(\d+-\d+-\d+)/)?.[1] || "N/A";
             const cliente = text.match(/Razón Social\/ Nombres y Apellidos:\s*(.+?)\s*RUC:/)?.[1] || "N/A";
             const ruc = text.match(/R\.U\.C\.\s+(\d+)/)?.[1] || "N/A";
             const fecha = text.match(/Fecha Emisión:\s*(\d{2}\/\d{2}\/\d{4})/)?.[1] || "N/A";
-            const totalFacturado = text.match(/VALOR TOTAL\s+([\d.,]+)/)?.[1]?.replace(",", "") || "N/A";
-            const iva = text.match(/I\.V\.A\.\s*([\d.,]+)/)?.[1]?.replace(",", "") || "N/A";
-
-            // Extraer productos
             const productos = [];
             const regexProductos = /(\w{2,5}\d+)\s+(.+?)\s+(\d+)\s+([\d.,]+)\s+([\d.,]+)/g;
             let match;
+
             while ((match = regexProductos.exec(text)) !== null) {
                 productos.push({
+                    factura,
+                    dia: fecha.split("/")[0],
+                    mes: fecha.split("/")[1],
+                    ano: fecha.split("/")[2],
+                    cliente,
+                    ruc,
                     codigo: match[1],
                     modelo: match[2],
                     cantidad: match[3],
@@ -168,24 +182,38 @@
                     precioTotal: match[5],
                 });
             }
+            return productos;
+        }
 
-            if (factura !== "N/A" && cliente !== "N/A" && productos.length > 0) {
-                return productos.map(producto => ({
-                    factura,
-                    dia: fecha.split("/")[0],
-                    mes: fecha.split("/")[1],
-                    ano: fecha.split("/")[2],
-                    fecha_entrega: fecha,
-                    cliente,
-                    ruc,
-                    ...producto,
-                    iva,
-                    totalFacturado,
-                }));
-            } else {
-                alert("No se pudo procesar el archivo PDF. Asegúrate de que el formato sea correcto.");
-                return [];
-            }
+        function processExcel(file) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+                rows.slice(1).forEach(row => {
+                    const newInvoice = {
+                        factura: row[0] || "N/A",
+                        dia: row[1] || "N/A",
+                        mes: row[2] || "N/A",
+                        ano: row[3] || "N/A",
+                        cliente: row[4] || "N/A",
+                        ruc: row[5] || "N/A",
+                        codigo: row[6] || "N/A",
+                        modelo: row[7] || "N/A",
+                        cantidad: row[8] || "N/A",
+                        costoUnitario: row[9] || "N/A",
+                        precioTotal: row[10] || "N/A",
+                    };
+                    invoices.push(newInvoice);
+                });
+
+                localStorage.setItem("invoices", JSON.stringify(invoices));
+                populateTable(invoices);
+            };
+            reader.readAsArrayBuffer(file);
         }
 
         function populateTable(invoices) {
@@ -199,7 +227,6 @@
                     <td>${invoice.dia}</td>
                     <td>${invoice.mes}</td>
                     <td>${invoice.ano}</td>
-                    <td>${invoice.fecha_entrega}</td>
                     <td>${invoice.cliente}</td>
                     <td>${invoice.ruc}</td>
                     <td>${invoice.codigo}</td>
@@ -207,8 +234,8 @@
                     <td>${invoice.cantidad}</td>
                     <td>${invoice.costoUnitario}</td>
                     <td>${invoice.precioTotal}</td>
-                    <td>${invoice.iva}</td>
-                    <td>${invoice.totalFacturado}</td>
+                    <td>${invoice.iva || "N/A"}</td>
+                    <td>${invoice.totalFacturado || "N/A"}</td>
                     <td><button onclick="deleteRow(${index})">Borrar</button></td>
                 `;
                 tableBody.appendChild(row);
