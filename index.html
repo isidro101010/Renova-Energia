@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Facturación</title>
     <style>
-        /* Diseño general */
+        /* Estilos básicos */
         body {
             font-family: Arial, sans-serif;
             background-color: #f4f4f4;
@@ -25,7 +25,7 @@
         main {
             padding: 20px;
         }
-        form, .progress-bar-container {
+        form {
             margin: 20px 0;
         }
         input, button {
@@ -71,6 +71,9 @@
             height: 20px;
             background-color: #005f99;
             transition: width 0.3s;
+        }
+        #search-bar {
+            margin-bottom: 20px;
         }
     </style>
 </head>
@@ -149,17 +152,53 @@
                 const progressBar = document.getElementById('progress-bar');
                 progressBar.style.width = "0%";
 
-                fetch('http://localhost:3000/upload', {
-                    method: 'POST',
-                    body: formData
-                }).then(response => response.json())
-                .then(data => {
-                    populateTable(data.invoices);
+                // Simula una llamada al backend para cargar el archivo
+                setTimeout(() => {
                     progressBar.style.width = "100%";
-                })
-                .catch(error => console.error('Error:', error));
+                    const invoices = generateMockData(); // Datos simulados
+                    populateTable(invoices);
+                }, 2000); // Simula tiempo de carga
             }
         });
+
+        function generateMockData() {
+            // Datos simulados para la tabla
+            return [
+                {
+                    factura: "001-001-00012345",
+                    dia: "29",
+                    mes: "12",
+                    ano: "2024",
+                    fecha_entrega: "29/12/2024",
+                    cliente: "Cliente Ejemplo S.A.",
+                    ruc: "1790012345001",
+                    provincia: "Pichincha",
+                    ciudad: "Quito",
+                    lista_precio: "General",
+                    canal: "Online",
+                    sub_canal: "Directo",
+                    vendedor: "Juan Pérez",
+                    cuentas: "Cuenta Principal",
+                    codigo: "PRD001",
+                    modelo: "Modelo A",
+                    proveedor: "Proveedor Ejemplo",
+                    cantidad: "10",
+                    costo_unitario: "50.00",
+                    costo_total: "500.00",
+                    iva_pagado: "60.00",
+                    total_facturado: "560.00",
+                    precio_unitario: "56.00",
+                    precio_total: "560.00",
+                    iva_cobrado: "60.00",
+                    total_a_facturar: "560.00",
+                    utilidad: "100.00",
+                    credito: "No",
+                    condiciones_credito: "Contado",
+                    pendientes: "0",
+                    perdido: "0"
+                }
+            ];
+        }
 
         function populateTable(invoices) {
             const tableBody = document.getElementById('invoice-table').querySelector('tbody');
@@ -209,19 +248,6 @@
             const tableBody = document.getElementById('invoice-table').querySelector('tbody');
             tableBody.deleteRow(index);
         }
-
-        document.getElementById('search-bar').addEventListener('input', (e) => {
-            const query = e.target.value.toLowerCase();
-            const rows = document.querySelectorAll('#invoice-table tbody tr');
-
-            rows.forEach(row => {
-                const cells = row.querySelectorAll('td');
-                const matches = Array.from(cells).some(cell => 
-                    cell.textContent.toLowerCase().includes(query)
-                );
-                row.style.display = matches ? '' : 'none';
-            });
-        });
     </script>
 </body>
 </html>
