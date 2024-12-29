@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Facturación con OCR</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.0.2/tesseract.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.15.349/pdf.min.js"></script>
+    <title>Sistema de Facturación con Procesamiento Automático</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -61,7 +60,7 @@
 </head>
 <body>
     <header>
-        <h1>Sistema de Facturación con OCR</h1>
+        <h1>Sistema de Facturación con Procesamiento Automático</h1>
     </header>
     <main>
         <h2>Cargar Factura PDF</h2>
@@ -73,40 +72,12 @@
         <table id="invoice-table">
             <thead>
                 <tr>
-                    <th>Factura</th>
-                    <th>Día</th>
-                    <th>Mes</th>
-                    <th>Año</th>
-                    <th>Fecha de Entrega</th>
-                    <th>Cliente</th>
-                    <th>RUC</th>
-                    <th>Provincia</th>
-                    <th>Ciudad</th>
-                    <th>Lista Precio</th>
-                    <th>Canal</th>
-                    <th>Sub Canal</th>
-                    <th>Vendedor</th>
-                    <th>Cuentas</th>
-                    <th>Código</th>
-                    <th>Modelo</th>
-                    <th>Proveedor</th>
-                    <th>Cantidad</th>
-                    <th>Costo Unitario</th>
-                    <th>Costo Total</th>
-                    <th>IVA Pagado</th>
-                    <th>Precio Unitario</th>
-                    <th>Precio Total</th>
-                    <th>IVA Cobrado</th>
-                    <th>Total a Facturar</th>
-                    <th>Utilidad</th>
-                    <th>Crédito</th>
-                    <th>Condiciones de Crédito</th>
-                    <th>Pendientes</th>
-                    <th>Perdido</th>
+                    <th>Campo</th>
+                    <th>Valor</th>
                 </tr>
             </thead>
             <tbody>
-                <!-- Aquí se mostrarán las facturas -->
+                <!-- Aquí se mostrarán los datos extraídos -->
             </tbody>
         </table>
     </main>
@@ -117,79 +88,73 @@
             const file = fileInput.files[0];
 
             if (file) {
-                const fileReader = new FileReader();
-                fileReader.onload = async function () {
-                    const arrayBuffer = this.result;
+                const arrayBuffer = await file.arrayBuffer();
+                const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
+                const text = await extractTextFromPDF(pdfDoc);
 
-                    // Convert PDF to Image
-                    const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
-                    const page = await pdf.getPage(1);
-                    const viewport = page.getViewport({ scale: 2 });
-                    const canvas = document.createElement('canvas');
-                    const context = canvas.getContext('2d');
-                    canvas.height = viewport.height;
-                    canvas.width = viewport.width;
-                    await page.render({ canvasContext: context, viewport }).promise;
-
-                    // Use OCR to Extract Text
-                    const { data: { text } } = await Tesseract.recognize(canvas.toDataURL(), 'eng');
-
-                    // Process the Extracted Text
-                    const invoiceData = extractDataFromText(text);
-                    populateTable(invoiceData);
-                };
-
-                fileReader.readAsArrayBuffer(file);
+                const data = processText(text);
+                populateTable(data);
             }
         });
 
-        function extractDataFromText(text) {
-            return {
-                factura: text.match(/Factura[:\s]+(\d+)/)?.[1] || 'No encontrado',
-                dia: text.match(/(\d{2})\/(\d{2})\/(\d{4})/)?.[1] || 'No encontrado',
-                mes: text.match(/(\d{2})\/(\d{2})\/(\d{4})/)?.[2] || 'No encontrado',
-                ano: text.match(/(\d{2})\/(\d{2})\/(\d{4})/)?.[3] || 'No encontrado',
-                fecha_entrega: text.match(/Fecha de Entrega[:\s]+([\d\/]+)/)?.[1] || 'No encontrado',
-                cliente: text.match(/Cliente[:\s]+(.+)/)?.[1] || 'No encontrado',
-                ruc: text.match(/RUC[:\s]+(\d+)/)?.[1] || 'No encontrado',
-                provincia: text.match(/Provincia[:\s]+(.+)/)?.[1] || 'No encontrado',
-                ciudad: text.match(/Ciudad[:\s]+(.+)/)?.[1] || 'No encontrado',
-                lista_precio: text.match(/Lista Precio[:\s]+(.+)/)?.[1] || 'No encontrado',
-                canal: text.match(/Canal[:\s]+(.+)/)?.[1] || 'No encontrado',
-                sub_canal: text.match(/Sub Canal[:\s]+(.+)/)?.[1] || 'No encontrado',
-                vendedor: text.match(/Vendedor[:\s]+(.+)/)?.[1] || 'No encontrado',
-                cuentas: text.match(/Cuentas[:\s]+(.+)/)?.[1] || 'No encontrado',
-                codigo: text.match(/Código[:\s]+(.+)/)?.[1] || 'No encontrado',
-                modelo: text.match(/Modelo[:\s]+(.+)/)?.[1] || 'No encontrado',
-                proveedor: text.match(/Proveedor[:\s]+(.+)/)?.[1] || 'No encontrado',
-                cantidad: text.match(/Cantidad[:\s]+(\d+)/)?.[1] || 'No encontrado',
-                costo_unitario: text.match(/Costo Unitario[:\s]+([\d.]+)/)?.[1] || 'No encontrado',
-                costo_total: text.match(/Costo Total[:\s]+([\d.]+)/)?.[1] || 'No encontrado',
-                iva_pagado: text.match(/IVA Pagado[:\s]+([\d.]+)/)?.[1] || 'No encontrado',
-                precio_unitario: text.match(/Precio Unitario[:\s]+([\d.]+)/)?.[1] || 'No encontrado',
-                precio_total: text.match(/Precio Total[:\s]+([\d.]+)/)?.[1] || 'No encontrado',
-                iva_cobrado: text.match(/IVA Cobrado[:\s]+([\d.]+)/)?.[1] || 'No encontrado',
-                total_a_facturar: text.match(/Total a Facturar[:\s]+([\d.]+)/)?.[1] || 'No encontrado',
-                utilidad: text.match(/Utilidad[:\s]+([\d.]+)/)?.[1] || 'No encontrado',
-                credito: text.match(/Crédito[:\s]+(.+)/)?.[1] || 'No encontrado',
-                condiciones_credito: text.match(/Condiciones de Crédito[:\s]+(.+)/)?.[1] || 'No encontrado',
-                pendientes: text.match(/Pendientes[:\s]+(.+)/)?.[1] || 'No encontrado',
-                perdido: text.match(/Perdido[:\s]+(.+)/)?.[1] || 'No encontrado',
+        async function extractTextFromPDF(pdfDoc) {
+            let fullText = '';
+            const pages = pdfDoc.getPages();
+            for (const page of pages) {
+                const text = await page.getTextContent();
+                fullText += text.items.map(item => item.str).join(' ') + '\n';
+            }
+            return fullText;
+        }
+
+        function processText(text) {
+            const patterns = {
+                factura: /Factura Nro[:\s]+(\d{3}-\d{3}-\d+)/,
+                dia: /(\d{2})\/(\d{2})\/(\d{4})/,
+                mes: /(\d{2})\/(\d{2})\/(\d{4})/,
+                ano: /(\d{2})\/(\d{2})\/(\d{4})/,
+                fecha_entrega: /Fecha de Entrega[:\s]+([\d/]+)/,
+                cliente: /Cliente[:\s]+([^\n]+)/,
+                ruc: /RUC[:\s]+(\d+)/,
+                provincia: /Provincia[:\s]+([^\n]+)/,
+                ciudad: /Ciudad[:\s]+([^\n]+)/,
+                vendedor: /Vendedor[:\s]+([^\n]+)/,
+                codigo: /Código[:\s]+([^\n]+)/,
+                modelo: /Modelo[:\s]+([^\n]+)/,
+                cantidad: /Cantidad[:\s]+(\d+)/,
+                costo_unitario: /Costo Unitario[:\s]+([\d.,]+)/,
+                costo_total: /Costo Total[:\s]+([\d.,]+)/,
+                iva_pagado: /IVA[:\s]+([\d.,]+)/,
+                precio_total: /Precio Total[:\s]+([\d.,]+)/,
+                total_a_facturar: /Total[:\s]+([\d.,]+)/,
+                condiciones_credito: /Condiciones de Crédito[:\s]+([^\n]+)/
             };
+
+            const results = {};
+            for (const [field, regex] of Object.entries(patterns)) {
+                const match = text.match(regex);
+                results[field] = match ? match[1] : "No encontrado";
+            }
+
+            return results;
         }
 
         function populateTable(data) {
             const tableBody = document.getElementById('invoice-table').querySelector('tbody');
             tableBody.innerHTML = '';
-            const row = document.createElement('tr');
 
-            Object.values(data).forEach(value => {
-                const cell = document.createElement('td');
-                cell.textContent = value;
-                row.appendChild(cell);
-            });
+            for (const [field, value] of Object.entries(data)) {
+                const row = document.createElement('tr');
+                const fieldCell = document.createElement('td');
+                const valueCell = document.createElement('td');
 
-            tableBody.appendChild(row);
+                fieldCell.textContent = field.charAt(0).toUpperCase() + field.slice(1).replace(/_/g, ' ');
+                valueCell.textContent = value;
+
+                row.appendChild(fieldCell);
+                row.appendChild(valueCell);
+                tableBody.appendChild(row);
+            }
         }
     </script>
 </body>
