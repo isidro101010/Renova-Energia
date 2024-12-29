@@ -97,10 +97,35 @@
                 <thead>
                     <tr>
                         <th>Factura</th>
+                        <th>Día</th>
+                        <th>Mes</th>
+                        <th>Año</th>
+                        <th>Fecha de Entrega</th>
                         <th>Cliente</th>
                         <th>RUC</th>
-                        <th>Productos</th>
-                        <th>Total Facturado</th>
+                        <th>Provincia</th>
+                        <th>Ciudad</th>
+                        <th>Lista Precio</th>
+                        <th>Canal</th>
+                        <th>Sub Canal</th>
+                        <th>Vendedor</th>
+                        <th>Cuentas</th>
+                        <th>Código</th>
+                        <th>Modelo</th>
+                        <th>Proveedor</th>
+                        <th>Cantidad</th>
+                        <th>Costo Unitario</th>
+                        <th>Costo Total</th>
+                        <th>IVA Pagado</th>
+                        <th>Precio Unitario</th>
+                        <th>Precio Total</th>
+                        <th>IVA Cobrado</th>
+                        <th>Total a Facturar</th>
+                        <th>Utilidad</th>
+                        <th>Crédito</th>
+                        <th>Condiciones de Crédito</th>
+                        <th>Pendientes</th>
+                        <th>Perdido</th>
                         <th>Acción</th>
                     </tr>
                 </thead>
@@ -167,21 +192,42 @@
             const factura = text.match(/FACTURA\s+(\d+-\d+-\d+)/)?.[1] || "No encontrada";
             const cliente = text.match(/Razón Social\/ Nombres y Apellidos:\s*(.+?)\s*RUC:/)?.[1] || "No encontrado";
             const ruc = text.match(/R\.U\.C\.\s+(\d+)/)?.[1] || "No encontrado";
+            const provincia = "Pichincha"; // Modificar si necesitas extraer del PDF
+            const ciudad = "Quito"; // Modificar si necesitas extraer del PDF
+            const productos = []; // Puedes ajustar la extracción si es necesario
             const totalFacturado = text.match(/VALOR TOTAL\s+([\d.,]+)/)?.[1]?.replace(",", ".") || "No encontrado";
-            const productos = [];
-            const regexProductos = /(\w+)\s+(.+?)\s+(\d+)\s+([\d.,]+)\s+([\d.,]+)/g;
-            let match;
-
-            while ((match = regexProductos.exec(text)) !== null) {
-                productos.push(`${match[2]} (Cant: ${match[3]}, Precio: ${match[5]})`);
-            }
 
             return {
-                factura: factura || fileName,
+                factura,
+                dia: "27",
+                mes: "12",
+                ano: "2024",
+                fecha_entrega: "27/12/2024",
                 cliente,
                 ruc,
-                productos: productos.join(", ") || "No especificado",
-                totalFacturado,
+                provincia,
+                ciudad,
+                lista_precio: "No especificado",
+                canal: "No especificado",
+                sub_canal: "No especificado",
+                vendedor: "Paul Coral",
+                cuentas: "No especificado",
+                codigo: productos.map(p => p.codigo || "N/A").join(", "),
+                modelo: productos.map(p => p.modelo || "N/A").join(", "),
+                proveedor: "No especificado",
+                cantidad: productos.map(p => p.cantidad || "N/A").join(", "),
+                costo_unitario: productos.map(p => p.costo || "N/A").join(", "),
+                costo_total: totalFacturado,
+                iva_pagado: "No especificado",
+                precio_unitario: "No especificado",
+                precio_total: "No especificado",
+                iva_cobrado: "No especificado",
+                total_a_facturar: totalFacturado,
+                utilidad: "No especificado",
+                credito: "0 días",
+                condiciones_credito: "No especificado",
+                pendientes: "No especificado",
+                perdido: "No especificado",
             };
         }
 
@@ -193,10 +239,35 @@
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td>${invoice.factura}</td>
+                    <td>${invoice.dia}</td>
+                    <td>${invoice.mes}</td>
+                    <td>${invoice.ano}</td>
+                    <td>${invoice.fecha_entrega}</td>
                     <td>${invoice.cliente}</td>
                     <td>${invoice.ruc}</td>
-                    <td>${invoice.productos}</td>
-                    <td>${invoice.totalFacturado}</td>
+                    <td>${invoice.provincia}</td>
+                    <td>${invoice.ciudad}</td>
+                    <td>${invoice.lista_precio}</td>
+                    <td>${invoice.canal}</td>
+                    <td>${invoice.sub_canal}</td>
+                    <td>${invoice.vendedor}</td>
+                    <td>${invoice.cuentas}</td>
+                    <td>${invoice.codigo}</td>
+                    <td>${invoice.modelo}</td>
+                    <td>${invoice.proveedor}</td>
+                    <td>${invoice.cantidad}</td>
+                    <td>${invoice.costo_unitario}</td>
+                    <td>${invoice.costo_total}</td>
+                    <td>${invoice.iva_pagado}</td>
+                    <td>${invoice.precio_unitario}</td>
+                    <td>${invoice.precio_total}</td>
+                    <td>${invoice.iva_cobrado}</td>
+                    <td>${invoice.total_a_facturar}</td>
+                    <td>${invoice.utilidad}</td>
+                    <td>${invoice.credito}</td>
+                    <td>${invoice.condiciones_credito}</td>
+                    <td>${invoice.pendientes}</td>
+                    <td>${invoice.perdido}</td>
                     <td><button onclick="deleteRow(${index})">Borrar</button></td>
                 `;
                 tableBody.appendChild(row);
