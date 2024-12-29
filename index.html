@@ -169,7 +169,7 @@
                     const pdf = await pdfjsLib.getDocument(typedArray).promise;
 
                     const text = await extractTextFromPDF(pdf);
-                    const newInvoice = processText(text, file.name);
+                    const newInvoice = processText(text);
                     invoices.push(newInvoice);
                     localStorage.setItem("invoices", JSON.stringify(invoices)); // Guardar en Local Storage
                     populateTable(invoices);
@@ -188,33 +188,39 @@
             return text.trim();
         }
 
-        function processText(text, fileName) {
+        function processText(text) {
+            const factura = text.match(/Factura Nro[:\s]+(\d+-\d+-\d+)/)?.[1] || "";
+            const cliente = text.match(/Cliente[:\s]+(.+)/)?.[1] || "";
+            const ruc = text.match(/RUC[:\s]+(\d+)/)?.[1] || "";
+            const fechaEntrega = text.match(/Fecha de Entrega[:\s]+([\d\/]+)/)?.[1] || "";
+            const totalFacturado = text.match(/VALOR TOTAL[:\s]+([\d.,]+)/)?.[1]?.replace(",", ".") || "";
+
             return {
-                factura: text.match(/FACTURA\s+(\d+-\d+-\d+)/)?.[1] || "",
-                dia: text.match(/(\d{2})\/(\d{2})\/(\d{4})/)?.[1] || "",
-                mes: text.match(/(\d{2})\/(\d{2})\/(\d{4})/)?.[2] || "",
-                ano: text.match(/(\d{2})\/(\d{2})\/(\d{4})/)?.[3] || "",
-                fecha_entrega: text.match(/Fecha de Entrega:\s*(.+)/)?.[1] || "",
-                cliente: text.match(/Razón Social\/ Nombres y Apellidos:\s*(.+?)\s*RUC:/)?.[1] || "",
-                ruc: text.match(/R\.U\.C\.\s+(\d+)/)?.[1] || "",
+                factura,
+                dia: fechaEntrega.split("/")[0] || "",
+                mes: fechaEntrega.split("/")[1] || "",
+                ano: fechaEntrega.split("/")[2] || "",
+                fecha_entrega: fechaEntrega,
+                cliente,
+                ruc,
                 provincia: "",
                 ciudad: "",
                 lista_precio: "",
                 canal: "",
                 sub_canal: "",
-                vendedor: text.match(/Vendedor:\s*(.+)/)?.[1] || "",
+                vendedor: "",
                 cuentas: "",
                 codigo: "",
                 modelo: "",
                 proveedor: "",
                 cantidad: "",
                 costo_unitario: "",
-                costo_total: text.match(/VALOR TOTAL\s+([\d.,]+)/)?.[1]?.replace(",", ".") || "",
+                costo_total: totalFacturado,
                 iva_pagado: "",
                 precio_unitario: "",
                 precio_total: "",
                 iva_cobrado: "",
-                total_a_facturar: "",
+                total_a_facturar: totalFacturado,
                 utilidad: "",
                 credito: "",
                 condiciones_credito: "",
