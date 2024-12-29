@@ -90,7 +90,28 @@
                         <th>RUC</th>
                         <th>Provincia</th>
                         <th>Ciudad</th>
-                        <th>Total</th>
+                        <th>Lista Precio</th>
+                        <th>Canal</th>
+                        <th>Sub Canal</th>
+                        <th>Vendedor</th>
+                        <th>Cuentas</th>
+                        <th>Código</th>
+                        <th>Modelo</th>
+                        <th>Proveedor</th>
+                        <th>Cantidad</th>
+                        <th>Costo Unitario</th>
+                        <th>Costo Total</th>
+                        <th>IVA Pagado</th>
+                        <th>Total Facturado</th>
+                        <th>Precio Unitario</th>
+                        <th>Precio Total</th>
+                        <th>IVA Cobrado</th>
+                        <th>Total a Facturar</th>
+                        <th>Utilidad</th>
+                        <th>Crédito</th>
+                        <th>Condiciones de Crédito</th>
+                        <th>Pendientes</th>
+                        <th>Perdido</th>
                         <th>Acción</th>
                     </tr>
                 </thead>
@@ -133,7 +154,7 @@
                 const pdf = await pdfjsLib.getDocument(typedArray).promise;
 
                 const text = await extractTextFromPDF(pdf);
-                const newInvoice = processPDFText(text);
+                const newInvoice = extractDataFromPDF(text);
                 if (newInvoice) {
                     invoices.push(newInvoice);
                     localStorage.setItem("invoices", JSON.stringify(invoices)); // Guardar en Local Storage
@@ -153,13 +174,13 @@
             return text;
         }
 
-        function processPDFText(text) {
-            // Extraer datos clave usando expresiones regulares
+        function extractDataFromPDF(text) {
+            // Extraer datos específicos del formato de la factura PDF
             const factura = text.match(/FACTURA\s+(\d+-\d+-\d+)/)?.[1] || "N/A";
             const cliente = text.match(/Razón Social\/ Nombres y Apellidos:\s*(.+?)\s*RUC:/)?.[1] || "N/A";
             const ruc = text.match(/R\.U\.C\.\s+(\d+)/)?.[1] || "N/A";
-            const total = text.match(/VALOR TOTAL\s+([\d.,]+)/)?.[1].replace(',', '') || "N/A";
             const fecha = text.match(/Fecha Emisión:\s*(\d{2}\/\d{2}\/\d{4})/)?.[1] || "N/A";
+            const valorTotal = text.match(/VALOR TOTAL\s+([\d.,]+)/)?.[1]?.replace(",", "") || "N/A";
 
             if (factura !== "N/A" && cliente !== "N/A") {
                 return {
@@ -172,7 +193,28 @@
                     ruc,
                     provincia: "Guayas",
                     ciudad: "Guayaquil",
-                    total,
+                    lista_precio: "N/A",
+                    canal: "N/A",
+                    sub_canal: "N/A",
+                    vendedor: "N/A",
+                    cuentas: "N/A",
+                    codigo: "N/A",
+                    modelo: "N/A",
+                    proveedor: "N/A",
+                    cantidad: "N/A",
+                    costo_unitario: "N/A",
+                    costo_total: "N/A",
+                    iva_pagado: "N/A",
+                    total_facturado: valorTotal,
+                    precio_unitario: "N/A",
+                    precio_total: valorTotal,
+                    iva_cobrado: "N/A",
+                    total_a_facturar: valorTotal,
+                    utilidad: "N/A",
+                    credito: "N/A",
+                    condiciones_credito: "N/A",
+                    pendientes: "N/A",
+                    perdido: "N/A"
                 };
             } else {
                 alert("No se pudo procesar el archivo PDF. Asegúrate de que el formato sea correcto.");
@@ -191,15 +233,10 @@
                 rows.slice(1).forEach(row => {
                     const newInvoice = {
                         factura: row[0] || "N/A",
-                        dia: row[1] || "N/A",
-                        mes: row[2] || "N/A",
-                        ano: row[3] || "N/A",
-                        fecha_entrega: row[4] || "N/A",
-                        cliente: row[5] || "N/A",
-                        ruc: row[6] || "N/A",
-                        provincia: row[7] || "N/A",
-                        ciudad: row[8] || "N/A",
-                        total: row[9] || "N/A",
+                        cliente: row[1] || "N/A",
+                        ruc: row[2] || "N/A",
+                        fecha: row[3] || "N/A",
+                        total: row[4] || "N/A",
                     };
                     invoices.push(newInvoice);
                 });
@@ -226,7 +263,28 @@
                     <td>${invoice.ruc}</td>
                     <td>${invoice.provincia}</td>
                     <td>${invoice.ciudad}</td>
-                    <td>${invoice.total}</td>
+                    <td>${invoice.lista_precio}</td>
+                    <td>${invoice.canal}</td>
+                    <td>${invoice.sub_canal}</td>
+                    <td>${invoice.vendedor}</td>
+                    <td>${invoice.cuentas}</td>
+                    <td>${invoice.codigo}</td>
+                    <td>${invoice.modelo}</td>
+                    <td>${invoice.proveedor}</td>
+                    <td>${invoice.cantidad}</td>
+                    <td>${invoice.costo_unitario}</td>
+                    <td>${invoice.costo_total}</td>
+                    <td>${invoice.iva_pagado}</td>
+                    <td>${invoice.total_facturado}</td>
+                    <td>${invoice.precio_unitario}</td>
+                    <td>${invoice.precio_total}</td>
+                    <td>${invoice.iva_cobrado}</td>
+                    <td>${invoice.total_a_facturar}</td>
+                    <td>${invoice.utilidad}</td>
+                    <td>${invoice.credito}</td>
+                    <td>${invoice.condiciones_credito}</td>
+                    <td>${invoice.pendientes}</td>
+                    <td>${invoice.perdido}</td>
                     <td><button onclick="deleteRow(${index})">Borrar</button></td>
                 `;
                 tableBody.appendChild(row);
