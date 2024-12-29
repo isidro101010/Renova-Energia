@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Facturación</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.15.349/pdf.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.5/xlsx.full.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -71,10 +70,10 @@
     </header>
     <main>
         <section id="upload-section">
-            <h2>Cargar Archivo</h2>
+            <h2>Cargar Factura PDF</h2>
             <form id="upload-form">
-                <input type="file" id="file-upload" accept=".pdf,.xlsx" required>
-                <button type="submit">Subir Archivo</button>
+                <input type="file" id="file-upload" accept=".pdf" required>
+                <button type="submit">Subir Factura</button>
             </form>
             <h3>Buscar Facturas</h3>
             <input type="text" id="search-bar" placeholder="Buscar por cliente, factura, etc.">
@@ -82,18 +81,7 @@
                 <thead>
                     <tr>
                         <th>Factura</th>
-                        <th>Día</th>
-                        <th>Mes</th>
-                        <th>Año</th>
-                        <th>Cliente</th>
-                        <th>RUC</th>
-                        <th>Código</th>
-                        <th>Modelo</th>
-                        <th>Cantidad</th>
-                        <th>Costo Unitario</th>
-                        <th>Precio Total</th>
-                        <th>IVA</th>
-                        <th>Total Facturado</th>
+                        <th>Texto Completo</th>
                         <th>Acción</th>
                     </tr>
                 </thead>
@@ -119,101 +107,29 @@
             const file = fileInput.files[0];
 
             if (file) {
-                const extension = file.name.split('.').pop().toLowerCase();
+                const reader = new FileReader();
+                reader.onload = async function () {
+                    const typedArray = new Uint8Array(this.result);
+                    const pdf = await pdfjsLib.getDocument(typedArray).promise;
 
-                if (extension === "pdf") {
-                    processPDF(file);
-                } else if (extension === "xlsx") {
-                    processExcel(file);
-                }
-            }
-        });
-
-        function processPDF(file) {
-            const reader = new FileReader();
-            reader.onload = async function () {
-                const typedArray = new Uint8Array(this.result);
-                const pdf = await pdfjsLib.getDocument(typedArray).promise;
-
-                const text = await extractTextFromPDF(pdf);
-                const newInvoice = extractDataFromPDF(text);
-                if (newInvoice.length > 0) {
-                    invoices.push(...newInvoice);
+                    const text = await extractTextFromPDF(pdf);
+                    const newInvoice = { factura: file.name, texto: text };
+                    invoices.push(newInvoice);
                     localStorage.setItem("invoices", JSON.stringify(invoices)); // Guardar en Local Storage
                     populateTable(invoices);
-                } else {
-                    alert("No se encontró información válida en el PDF.");
-                }
-            };
-            reader.readAsArrayBuffer(file);
-        }
+                };
+                reader.readAsArrayBuffer(file);
+            }
+        });
 
         async function extractTextFromPDF(pdf) {
             let text = '';
             for (let i = 1; i <= pdf.numPages; i++) {
                 const page = await pdf.getPage(i);
                 const content = await page.getTextContent();
-                text += content.items.map(item => item.str).join(' ');
+                text += content.items.map(item => item.str).join(' ') + '\n';
             }
-            return text;
-        }
-
-        function extractDataFromPDF(text) {
-            const factura = text.match(/FACTURA\s+(\d+-\d+-\d+)/)?.[1] || "N/A";
-            const cliente = text.match(/Razón Social\/ Nombres y Apellidos:\s*(.+?)\s*RUC:/)?.[1] || "N/A";
-            const ruc = text.match(/R\.U\.C\.\s+(\d+)/)?.[1] || "N/A";
-            const fecha = text.match(/Fecha Emisión:\s*(\d{2}\/\d{2}\/\d{4})/)?.[1] || "N/A";
-            const productos = [];
-            const regexProductos = /(\w{2,5}\d+)\s+(.+?)\s+(\d+)\s+([\d.,]+)\s+([\d.,]+)/g;
-            let match;
-
-            while ((match = regexProductos.exec(text)) !== null) {
-                productos.push({
-                    factura,
-                    dia: fecha.split("/")[0],
-                    mes: fecha.split("/")[1],
-                    ano: fecha.split("/")[2],
-                    cliente,
-                    ruc,
-                    codigo: match[1],
-                    modelo: match[2],
-                    cantidad: match[3],
-                    costoUnitario: match[4],
-                    precioTotal: match[5],
-                });
-            }
-            return productos;
-        }
-
-        function processExcel(file) {
-            const reader = new FileReader();
-            reader.onload = function (e) {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-                const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-
-                rows.slice(1).forEach(row => {
-                    const newInvoice = {
-                        factura: row[0] || "N/A",
-                        dia: row[1] || "N/A",
-                        mes: row[2] || "N/A",
-                        ano: row[3] || "N/A",
-                        cliente: row[4] || "N/A",
-                        ruc: row[5] || "N/A",
-                        codigo: row[6] || "N/A",
-                        modelo: row[7] || "N/A",
-                        cantidad: row[8] || "N/A",
-                        costoUnitario: row[9] || "N/A",
-                        precioTotal: row[10] || "N/A",
-                    };
-                    invoices.push(newInvoice);
-                });
-
-                localStorage.setItem("invoices", JSON.stringify(invoices));
-                populateTable(invoices);
-            };
-            reader.readAsArrayBuffer(file);
+            return text.trim();
         }
 
         function populateTable(invoices) {
@@ -224,18 +140,7 @@
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td>${invoice.factura}</td>
-                    <td>${invoice.dia}</td>
-                    <td>${invoice.mes}</td>
-                    <td>${invoice.ano}</td>
-                    <td>${invoice.cliente}</td>
-                    <td>${invoice.ruc}</td>
-                    <td>${invoice.codigo}</td>
-                    <td>${invoice.modelo}</td>
-                    <td>${invoice.cantidad}</td>
-                    <td>${invoice.costoUnitario}</td>
-                    <td>${invoice.precioTotal}</td>
-                    <td>${invoice.iva || "N/A"}</td>
-                    <td>${invoice.totalFacturado || "N/A"}</td>
+                    <td><pre>${invoice.texto}</pre></td>
                     <td><button onclick="deleteRow(${index})">Borrar</button></td>
                 `;
                 tableBody.appendChild(row);
@@ -247,6 +152,19 @@
             localStorage.setItem("invoices", JSON.stringify(invoices)); // Actualizar Local Storage
             populateTable(invoices);
         }
+
+        document.getElementById('search-bar').addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            const rows = document.querySelectorAll('#invoice-table tbody tr');
+
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                const matches = Array.from(cells).some(cell =>
+                    cell.textContent.toLowerCase().includes(query)
+                );
+                row.style.display = matches ? '' : 'none';
+            });
+        });
     </script>
 </body>
 </html>
