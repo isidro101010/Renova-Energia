@@ -1,187 +1,227 @@
-// Importar módulos necesarios
-const express = require("express");
-const multer = require("multer");
-const cors = require("cors");
-const fs = require("fs");
-const path = require("path");
-const xlsx = require("xlsx");
-const pdfParse = require("pdf-parse");
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Facturación</title>
+    <style>
+        /* Diseño general */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+        header {
+            background-color: #005f99;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        h1 {
+            margin: 0;
+        }
+        main {
+            padding: 20px;
+        }
+        form, .progress-bar-container {
+            margin: 20px 0;
+        }
+        input, button {
+            display: block;
+            margin: 10px 0;
+            padding: 10px;
+            width: 100%;
+            max-width: 400px;
+        }
+        button {
+            background-color: #ff6600;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #cc5200;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #005f99;
+            color: white;
+        }
+        .progress-bar-container {
+            width: 100%;
+            max-width: 400px;
+            background-color: #ddd;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        .progress-bar {
+            width: 0;
+            height: 20px;
+            background-color: #005f99;
+            transition: width 0.3s;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Sistema de Facturación</h1>
+    </header>
+    <main>
+        <section id="upload-section">
+            <h2>Cargar Facturas</h2>
+            <form id="upload-form">
+                <input type="file" id="file-upload" accept=".xlsx,.pdf" required>
+                <button type="submit">Subir Factura</button>
+            </form>
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="progress-bar"></div>
+            </div>
+            <h3>Buscar Facturas</h3>
+            <input type="text" id="search-bar" placeholder="Buscar por cliente, factura, etc.">
+            <table id="invoice-table">
+                <thead>
+                    <tr>
+                        <th>Factura</th>
+                        <th>Día</th>
+                        <th>Mes</th>
+                        <th>Año</th>
+                        <th>Fecha de Entrega</th>
+                        <th>Cliente</th>
+                        <th>RUC</th>
+                        <th>Provincia</th>
+                        <th>Ciudad</th>
+                        <th>Lista Precio</th>
+                        <th>Canal</th>
+                        <th>Sub Canal</th>
+                        <th>Vendedor</th>
+                        <th>Cuentas</th>
+                        <th>Código</th>
+                        <th>Modelo</th>
+                        <th>Proveedor</th>
+                        <th>Cantidad</th>
+                        <th>Costo Unitario</th>
+                        <th>Costo Total</th>
+                        <th>IVA Pagado</th>
+                        <th>Total Facturado</th>
+                        <th>Precio Unitario</th>
+                        <th>Precio Total</th>
+                        <th>IVA Cobrado</th>
+                        <th>Total a Facturar</th>
+                        <th>Utilidad</th>
+                        <th>Crédito</th>
+                        <th>Condiciones de Crédito</th>
+                        <th>Pendientes</th>
+                        <th>Perdido</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Aquí se mostrarán las facturas -->
+                </tbody>
+            </table>
+        </section>
+    </main>
+    <footer>
+        <p>Sistema de Facturación - 2024</p>
+    </footer>
+    <script>
+        document.getElementById('upload-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const fileInput = document.getElementById('file-upload');
+            const file = fileInput.files[0];
 
-const app = express();
-const upload = multer({ dest: "uploads/" });
+            if (file) {
+                const formData = new FormData();
+                formData.append('file', file);
 
-// Middleware
-app.use(cors());
-app.use(express.json());
+                const progressBar = document.getElementById('progress-bar');
+                progressBar.style.width = "0%";
 
-// Servir contenido HTML con el frontend embebido
-app.get("/", (req, res) => {
-    res.send(`
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Sistema de Facturación</title>
-            <style>
-                body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0; color: #333; }
-                header { background-color: #005f99; color: white; padding: 20px; text-align: center; }
-                h1 { margin: 0; }
-                main { padding: 20px; }
-                form, .progress-bar-container { margin: 20px 0; }
-                input, button { display: block; margin: 10px 0; padding: 10px; width: 100%; max-width: 400px; }
-                button { background-color: #ff6600; color: white; border: none; cursor: pointer; }
-                button:hover { background-color: #cc5200; }
-                table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-                th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
-                th { background-color: #005f99; color: white; }
-                .progress-bar-container { width: 100%; max-width: 400px; background-color: #ddd; border-radius: 5px; overflow: hidden; }
-                .progress-bar { width: 0; height: 20px; background-color: #005f99; transition: width 0.3s; }
-            </style>
-        </head>
-        <body>
-            <header>
-                <h1>Sistema de Facturación</h1>
-            </header>
-            <main>
-                <section id="upload-section">
-                    <h2>Cargar Facturas</h2>
-                    <form id="upload-form">
-                        <input type="file" id="file-upload" accept=".xlsx,.pdf" required>
-                        <button type="submit">Subir Factura</button>
-                    </form>
-                    <div class="progress-bar-container">
-                        <div class="progress-bar" id="progress-bar"></div>
-                    </div>
-                    <h3>Buscar Facturas</h3>
-                    <input type="text" id="search-bar" placeholder="Buscar por cliente, factura, etc.">
-                    <table id="invoice-table">
-                        <thead>
-                            <tr>
-                                <th>Factura</th>
-                                <th>Cliente</th>
-                                <th>Fecha</th>
-                                <th>RUC</th>
-                                <th>Total</th>
-                                <th>Estado</th>
-                                <th>Acción</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Aquí se mostrarán las facturas -->
-                        </tbody>
-                    </table>
-                </section>
-            </main>
-            <footer>
-                <p>Sistema de Facturación - 2024</p>
-            </footer>
-            <script>
-                document.getElementById('upload-form').addEventListener('submit', (e) => {
-                    e.preventDefault();
-                    const fileInput = document.getElementById('file-upload');
-                    const file = fileInput.files[0];
+                fetch('http://localhost:3000/upload', {
+                    method: 'POST',
+                    body: formData
+                }).then(response => response.json())
+                .then(data => {
+                    populateTable(data.invoices);
+                    progressBar.style.width = "100%";
+                })
+                .catch(error => console.error('Error:', error));
+            }
+        });
 
-                    if (file) {
-                        const formData = new FormData();
-                        formData.append('file', file);
+        function populateTable(invoices) {
+            const tableBody = document.getElementById('invoice-table').querySelector('tbody');
+            tableBody.innerHTML = ''; // Limpiar datos previos
 
-                        const progressBar = document.getElementById('progress-bar');
-                        progressBar.style.width = "0%";
-
-                        fetch('/upload', {
-                            method: 'POST',
-                            body: formData
-                        }).then(response => response.json())
-                        .then(data => {
-                            populateTable(data.invoices);
-                            progressBar.style.width = "100%";
-                        })
-                        .catch(error => console.error('Error:', error));
-                    }
-                });
-
-                function populateTable(invoices) {
-                    const tableBody = document.getElementById('invoice-table').querySelector('tbody');
-                    tableBody.innerHTML = ''; // Limpiar datos previos
-
-                    invoices.forEach((invoice, index) => {
-                        const row = document.createElement('tr');
-                        row.innerHTML = `
-                            <td>${invoice.factura}</td>
-                            <td>${invoice.cliente}</td>
-                            <td>${invoice.fecha}</td>
-                            <td>${invoice.ruc}</td>
-                            <td>${invoice.total}</td>
-                            <td>${invoice.estado}</td>
-                            <td><button onclick="deleteRow(${index})">Borrar</button></td>
-                        `;
-                        tableBody.appendChild(row);
-                    });
-                }
-
-                function deleteRow(index) {
-                    const tableBody = document.getElementById('invoice-table').querySelector('tbody');
-                    tableBody.deleteRow(index);
-                }
-
-                document.getElementById('search-bar').addEventListener('input', (e) => {
-                    const query = e.target.value.toLowerCase();
-                    const rows = document.querySelectorAll('#invoice-table tbody tr');
-
-                    rows.forEach(row => {
-                        const cells = row.querySelectorAll('td');
-                        const matches = Array.from(cells).some(cell => 
-                            cell.textContent.toLowerCase().includes(query)
-                        );
-                        row.style.display = matches ? '' : 'none';
-                    });
-                });
-            </script>
-        </body>
-        </html>
-    `);
-});
-
-// Procesar archivos subidos
-app.post("/upload", upload.single("file"), async (req, res) => {
-    const file = req.file;
-
-    if (!file) {
-        return res.status(400).send("No se subió ningún archivo.");
-    }
-
-    try {
-        const ext = path.extname(file.originalname).toLowerCase();
-        let invoices = [];
-
-        if (ext === ".xlsx" || ext === ".xls") {
-            const workbook = xlsx.readFile(file.path);
-            const sheetName = workbook.SheetNames[0];
-            const sheetData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
-            invoices = sheetData.map(row => ({
-                factura: row["Factura"] || "N/A",
-                cliente: row["Cliente"] || "N/A",
-                fecha: row["Fecha"] || "N/A",
-                ruc: row["RUC"] || "N/A",
-                total: row["Total Facturado"] || "N/A",
-                estado: "Procesado desde Excel"
-            }));
-        } else if (ext === ".pdf") {
-            const pdfData = fs.readFileSync(file.path);
-            const pdfText = await pdfParse(pdfData);
-            invoices = [{ factura: "PDF", cliente: "PDF Cliente", fecha: "PDF Fecha", ruc: "PDF RUC", total: "PDF Total", estado: "PDF Procesado" }];
-        } else {
-            return res.status(400).send("Formato no compatible.");
+            invoices.forEach((invoice, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${invoice.factura}</td>
+                    <td>${invoice.dia}</td>
+                    <td>${invoice.mes}</td>
+                    <td>${invoice.ano}</td>
+                    <td>${invoice.fecha_entrega}</td>
+                    <td>${invoice.cliente}</td>
+                    <td>${invoice.ruc}</td>
+                    <td>${invoice.provincia}</td>
+                    <td>${invoice.ciudad}</td>
+                    <td>${invoice.lista_precio}</td>
+                    <td>${invoice.canal}</td>
+                    <td>${invoice.sub_canal}</td>
+                    <td>${invoice.vendedor}</td>
+                    <td>${invoice.cuentas}</td>
+                    <td>${invoice.codigo}</td>
+                    <td>${invoice.modelo}</td>
+                    <td>${invoice.proveedor}</td>
+                    <td>${invoice.cantidad}</td>
+                    <td>${invoice.costo_unitario}</td>
+                    <td>${invoice.costo_total}</td>
+                    <td>${invoice.iva_pagado}</td>
+                    <td>${invoice.total_facturado}</td>
+                    <td>${invoice.precio_unitario}</td>
+                    <td>${invoice.precio_total}</td>
+                    <td>${invoice.iva_cobrado}</td>
+                    <td>${invoice.total_a_facturar}</td>
+                    <td>${invoice.utilidad}</td>
+                    <td>${invoice.credito}</td>
+                    <td>${invoice.condiciones_credito}</td>
+                    <td>${invoice.pendientes}</td>
+                    <td>${invoice.perdido}</td>
+                    <td><button onclick="deleteRow(${index})">Borrar</button></td>
+                `;
+                tableBody.appendChild(row);
+            });
         }
 
-        fs.unlinkSync(file.path);
-        res.json({ invoices });
-    } catch (error) {
-        console.error("Error procesando archivo:", error);
-        res.status(500).send("Error procesando archivo.");
-    }
-});
+        function deleteRow(index) {
+            const tableBody = document.getElementById('invoice-table').querySelector('tbody');
+            tableBody.deleteRow(index);
+        }
 
-// Iniciar servidor
-app.listen(3000, () => console.log("Servidor corriendo en http://localhost:3000"));
+        document.getElementById('search-bar').addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            const rows = document.querySelectorAll('#invoice-table tbody tr');
+
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                const matches = Array.from(cells).some(cell => 
+                    cell.textContent.toLowerCase().includes(query)
+                );
+                row.style.display = matches ? '' : 'none';
+            });
+        });
+    </script>
+</body>
+</html>
