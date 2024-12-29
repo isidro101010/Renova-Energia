@@ -1,54 +1,160 @@
-import re
-import PyPDF2
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Facturación</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.0.2/tesseract.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+        header {
+            background-color: #005f99;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        h1 {
+            margin: 0;
+        }
+        main {
+            padding: 20px;
+        }
+        input, button {
+            display: block;
+            margin: 10px 0;
+            padding: 10px;
+            width: 100%;
+            max-width: 400px;
+        }
+        button {
+            background-color: #ff6600;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #cc5200;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #005f99;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Sistema de Facturación en GitHub Pages</h1>
+    </header>
+    <main>
+        <h2>Cargar Factura PDF</h2>
+        <form id="upload-form">
+            <input type="file" id="file-upload" accept=".pdf" required>
+            <button type="submit">Procesar Factura</button>
+        </form>
+        <h3>Resultados</h3>
+        <table id="invoice-table">
+            <thead>
+                <tr>
+                    <th>Campo</th>
+                    <th>Valor</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Aquí se mostrarán los datos extraídos -->
+            </tbody>
+        </table>
+    </main>
+    <script>
+        document.getElementById('upload-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const fileInput = document.getElementById('file-upload');
+            const file = fileInput.files[0];
 
-def extraer_informacion_pdf(archivo_pdf):
-    with open(archivo_pdf, 'rb') as archivo:
-        lector = PyPDF2.PdfReader(archivo)
-        texto = ""
-        for pagina in lector.pages:
-            texto += pagina.extract_text()
-    
-    # Definir patrones para cada categoría
-    patrones = {
-        "factura": re.search(r"Factura Nro[:\s]+(\d{3}-\d{3}-\d+)", texto),
-        "dia": re.search(r"(\d{2})/(\d{2})/(\d{4})", texto),
-        "mes": re.search(r"(\d{2})/(\d{2})/(\d{4})", texto),
-        "ano": re.search(r"(\d{2})/(\d{2})/(\d{4})", texto),
-        "fecha_entrega": re.search(r"Fecha de Entrega[:\s]+([\d/]+)", texto),
-        "cliente": re.search(r"Cliente[:\s]+([^\n]+)", texto),
-        "ruc": re.search(r"RUC[:\s]+(\d+)", texto),
-        "provincia": re.search(r"Provincia[:\s]+([^\n]+)", texto),
-        "ciudad": re.search(r"Ciudad[:\s]+([^\n]+)", texto),
-        "vendedor": re.search(r"Vendedor[:\s]+([^\n]+)", texto),
-        "codigo": re.search(r"Código[:\s]+([^\n]+)", texto),
-        "modelo": re.search(r"Modelo[:\s]+([^\n]+)", texto),
-        "cantidad": re.search(r"Cantidad[:\s]+(\d+)", texto),
-        "costo_unitario": re.search(r"Costo Unitario[:\s]+([\d.,]+)", texto),
-        "costo_total": re.search(r"Costo Total[:\s]+([\d.,]+)", texto),
-        "iva_pagado": re.search(r"IVA[:\s]+([\d.,]+)", texto),
-        "precio_total": re.search(r"Precio Total[:\s]+([\d.,]+)", texto),
-        "total_a_facturar": re.search(r"Total[:\s]+([\d.,]+)", texto),
-        "condiciones_credito": re.search(r"Condiciones de Crédito[:\s]+([^\n]+)", texto),
-    }
+            if (file) {
+                const arrayBuffer = await file.arrayBuffer();
+                const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
+                const text = await extractTextFromPDF(pdfDoc);
 
-    # Extraer y limpiar los resultados
-    resultados = {}
-    for campo, patron in patrones.items():
-        if patron:
-            resultados[campo] = patron.group(1)
-        else:
-            resultados[campo] = "No encontrado"
+                const data = processText(text);
+                populateTable(data);
+            }
+        });
 
-    return resultados
+        async function extractTextFromPDF(pdfDoc) {
+            let fullText = '';
+            const pages = pdfDoc.getPages();
+            for (const page of pages) {
+                const textContent = await page.getTextContent();
+                const pageText = textContent.items.map(item => item.str).join(' ');
+                fullText += pageText + '\n';
+            }
+            return fullText;
+        }
 
+        function processText(text) {
+            const patterns = {
+                factura: /Factura Nro[:\s]+(\d{3}-\d{3}-\d+)/,
+                dia: /(\d{2})\/(\d{2})\/(\d{4})/,
+                cliente: /Cliente[:\s]+([^\n]+)/,
+                ruc: /RUC[:\s]+(\d+)/,
+                provincia: /Provincia[:\s]+([^\n]+)/,
+                ciudad: /Ciudad[:\s]+([^\n]+)/,
+                vendedor: /Vendedor[:\s]+([^\n]+)/,
+                codigo: /Código[:\s]+([^\n]+)/,
+                modelo: /Modelo[:\s]+([^\n]+)/,
+                cantidad: /Cantidad[:\s]+(\d+)/,
+                costo_unitario: /Costo Unitario[:\s]+([\d.,]+)/,
+                costo_total: /Costo Total[:\s]+([\d.,]+)/,
+                iva_pagado: /IVA[:\s]+([\d.,]+)/,
+                precio_total: /Precio Total[:\s]+([\d.,]+)/,
+                total_a_facturar: /Total[:\s]+([\d.,]+)/,
+                condiciones_credito: /Condiciones de Crédito[:\s]+([^\n]+)/
+            };
 
-# Ruta del archivo PDF
-archivo_pdf = "Fact 7144 - ANDRADE PAREDES ERICK MICHAEL - equipos varios - JP - 27 12 24.pdf"
+            const results = {};
+            for (const [field, regex] of Object.entries(patterns)) {
+                const match = text.match(regex);
+                results[field] = match ? match[1] : "No encontrado";
+            }
 
-# Extraer información
-informacion = extraer_informacion_pdf(archivo_pdf)
+            return results;
+        }
 
-# Mostrar resultados
-print("Información extraída del PDF:")
-for campo, valor in informacion.items():
-    print(f"{campo.capitalize()}: {valor}")
+        function populateTable(data) {
+            const tableBody = document.getElementById('invoice-table').querySelector('tbody');
+            tableBody.innerHTML = '';
+
+            for (const [field, value] of Object.entries(data)) {
+                const row = document.createElement('tr');
+                const fieldCell = document.createElement('td');
+                const valueCell = document.createElement('td');
+
+                fieldCell.textContent = field.charAt(0).toUpperCase() + field.slice(1).replace(/_/g, ' ');
+                valueCell.textContent = value;
+
+                row.appendChild(fieldCell);
+                row.appendChild(valueCell);
+                tableBody.appendChild(row);
+            }
+        }
+    </script>
+</body>
+</html>
