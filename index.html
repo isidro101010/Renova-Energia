@@ -87,8 +87,6 @@
                         <th>Fecha de Entrega</th>
                         <th>Cliente</th>
                         <th>RUC</th>
-                        <th>Provincia</th>
-                        <th>Ciudad</th>
                         <th>Código</th>
                         <th>Modelo</th>
                         <th>Cantidad</th>
@@ -127,9 +125,9 @@
                     const pdf = await pdfjsLib.getDocument(typedArray).promise;
 
                     const text = await extractTextFromPDF(pdf);
-                    const newInvoice = processPDFText(text);
+                    const newInvoice = extractDataFromPDF(text);
                     if (newInvoice) {
-                        invoices.push(newInvoice);
+                        invoices.push(...newInvoice);
                         localStorage.setItem("invoices", JSON.stringify(invoices)); // Guardar en Local Storage
                         populateTable(invoices);
                     }
@@ -148,16 +146,16 @@
             return text;
         }
 
-        function processPDFText(text) {
+        function extractDataFromPDF(text) {
+            // Extraer datos clave del texto
             const factura = text.match(/FACTURA\s+(\d+-\d+-\d+)/)?.[1] || "N/A";
             const cliente = text.match(/Razón Social\/ Nombres y Apellidos:\s*(.+?)\s*RUC:/)?.[1] || "N/A";
             const ruc = text.match(/R\.U\.C\.\s+(\d+)/)?.[1] || "N/A";
             const fecha = text.match(/Fecha Emisión:\s*(\d{2}\/\d{2}\/\d{4})/)?.[1] || "N/A";
-            const provincia = "Guayas";
-            const ciudad = "Guayaquil";
             const totalFacturado = text.match(/VALOR TOTAL\s+([\d.,]+)/)?.[1]?.replace(",", "") || "N/A";
             const iva = text.match(/I\.V\.A\.\s*([\d.,]+)/)?.[1]?.replace(",", "") || "N/A";
 
+            // Extraer productos
             const productos = [];
             const regexProductos = /(\w{2,5}\d+)\s+(.+?)\s+(\d+)\s+([\d.,]+)\s+([\d.,]+)/g;
             let match;
@@ -172,7 +170,7 @@
             }
 
             if (factura !== "N/A" && cliente !== "N/A" && productos.length > 0) {
-                const rows = productos.map(producto => ({
+                return productos.map(producto => ({
                     factura,
                     dia: fecha.split("/")[0],
                     mes: fecha.split("/")[1],
@@ -180,13 +178,10 @@
                     fecha_entrega: fecha,
                     cliente,
                     ruc,
-                    provincia,
-                    ciudad,
                     ...producto,
                     iva,
-                    totalFacturado
+                    totalFacturado,
                 }));
-                return rows;
             } else {
                 alert("No se pudo procesar el archivo PDF. Asegúrate de que el formato sea correcto.");
                 return [];
@@ -197,7 +192,7 @@
             const tableBody = document.getElementById('invoice-table').querySelector('tbody');
             tableBody.innerHTML = ''; // Limpiar datos previos
 
-            invoices.flat().forEach((invoice, index) => {
+            invoices.forEach((invoice, index) => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td>${invoice.factura}</td>
@@ -207,8 +202,6 @@
                     <td>${invoice.fecha_entrega}</td>
                     <td>${invoice.cliente}</td>
                     <td>${invoice.ruc}</td>
-                    <td>${invoice.provincia}</td>
-                    <td>${invoice.ciudad}</td>
                     <td>${invoice.codigo}</td>
                     <td>${invoice.modelo}</td>
                     <td>${invoice.cantidad}</td>
@@ -227,19 +220,6 @@
             localStorage.setItem("invoices", JSON.stringify(invoices)); // Actualizar Local Storage
             populateTable(invoices);
         }
-
-        document.getElementById('search-bar').addEventListener('input', (e) => {
-            const query = e.target.value.toLowerCase();
-            const rows = document.querySelectorAll('#invoice-table tbody tr');
-
-            rows.forEach(row => {
-                const cells = row.querySelectorAll('td');
-                const matches = Array.from(cells).some(cell =>
-                    cell.textContent.toLowerCase().includes(query)
-                );
-                row.style.display = matches ? '' : 'none';
-            });
-        });
     </script>
 </body>
 </html>
