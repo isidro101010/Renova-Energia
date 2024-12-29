@@ -1,26 +1,146 @@
-import sys
-import pandas as pd
-import json
+// Importar módulos necesarios
+const express = require("express");
+const multer = require("multer");
+const cors = require("cors");
+const fs = require("fs");
+const { spawn } = require("child_process");
 
-def process_factura(file_path):
-    try:
-        data = pd.read_excel(file_path)
-        invoices = []
+// Configuración del servidor
+const app = express();
+const upload = multer({ dest: "uploads/" });
 
-        for _, row in data.iterrows():
-            invoices.append({
-                "factura": row.get('Factura', 'N/A'),
-                "cliente": row.get('Cliente', 'N/A'),
-                "fecha_entrega": row.get('Fecha de Entrega', 'N/A'),
-                "total": row.get('Total Facturado', 0),
-                "estado": row.get('Estado', 'Pendiente'),
-            })
+// Configurar middlewares
+app.use(cors());
+app.use(express.json());
 
-        return invoices
-    except Exception as e:
-        return str(e)
+// RUTA PRINCIPAL PARA HTML (Frontend incluido aquí mismo)
+app.get("/", (req, res) => {
+    res.send(`
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Sistema de Facturación</title>
+            <style>
+                body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0; color: #333; }
+                header { background-color: #005f99; color: white; padding: 20px; text-align: center; }
+                h1 { margin: 0; }
+                main { padding: 20px; }
+                form { margin: 20px 0; }
+                input, button { display: block; margin: 10px 0; padding: 10px; width: 100%; max-width: 400px; }
+                button { background-color: #ff6600; color: white; border: none; cursor: pointer; }
+                button:hover { background-color: #cc5200; }
+                table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+                th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+                th { background-color: #005f99; color: white; }
+                .hidden { display: none; }
+            </style>
+        </head>
+        <body>
+            <header>
+                <h1>Sistema de Facturación</h1>
+            </header>
+            <main>
+                <section id="upload-section">
+                    <h2>Cargar Factura</h2>
+                    <form id="upload-form">
+                        <input type="file" id="file-upload" accept=".xlsx,.csv,.xls" required>
+                        <button type="submit">Subir Factura</button>
+                    </form>
+                    <table id="invoice-table">
+                        <thead>
+                            <tr>
+                                <th>Factura</th>
+                                <th>Cliente</th>
+                                <th>Fecha de Entrega</th>
+                                <th>Total</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Datos aquí -->
+                        </tbody>
+                    </table>
+                </section>
+            </main>
+            <footer>
+                <p>Sistema de Facturación - 2024</p>
+            </footer>
+            <script>
+                document.getElementById('upload-form').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const fileInput = document.getElementById('file-upload');
+                    const file = fileInput.files[0];
 
-if __name__ == "__main__":
-    file_path = sys.argv[1]
-    result = process_factura(file_path)
-    print(json.dumps(result))
+                    if (file) {
+                        const formData = new FormData();
+                        formData.append('file', file);
+
+                        fetch('/upload', {
+                            method: 'POST',
+                            body: formData
+                        })
+                        .then(response => response.json())
+                        .then(data => populateTable(data.invoices))
+                        .catch(error => console.error('Error:', error));
+                    }
+                });
+
+                function populateTable(invoices) {
+                    const tableBody = document.getElementById('invoice-table').querySelector('tbody');
+                    tableBody.innerHTML = '';
+                    invoices.forEach(invoice => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${invoice.factura}</td>
+                            <td>${invoice.cliente}</td>
+                            <td>${invoice.fecha_entrega}</td>
+                            <td>${invoice.total}</td>
+                            <td>${invoice.estado}</td>
+                        `;
+                        tableBody.appendChild(row);
+                    });
+                }
+            </script>
+        </body>
+        </html>
+    `);
+});
+
+// RUTA PARA SUBIR ARCHIVOS Y PROCESARLOS (IA incluida aquí mismo)
+app.post("/upload", upload.single("file"), (req, res) => {
+    const file = req.file;
+
+    if (!file) {
+        return res.status(400).send("No se subió ningún archivo.");
+    }
+
+    // Simular procesamiento de IA con Python en Node.js
+    const processFile = (filePath) => {
+        const xlsx = require("xlsx");
+        const workbook = xlsx.readFile(filePath);
+        const sheetName = workbook.SheetNames[0];
+        const sheetData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
+
+        return sheetData.map(row => ({
+            factura: row["Factura"] || "N/A",
+            cliente: row["Cliente"] || "N/A",
+            fecha_entrega: row["Fecha de Entrega"] || "N/A",
+            total: row["Total Facturado"] || 0,
+            estado: row["Estado"] || "Pendiente"
+        }));
+    };
+
+    try {
+        const invoices = processFile(file.path);
+        fs.unlinkSync(file.path); // Eliminar archivo después de procesar
+        res.json({ invoices });
+    } catch (error) {
+        console.error("Error procesando archivo:", error);
+        res.status(500).send("Error procesando archivo.");
+    }
+});
+
+// INICIAR SERVIDOR
+app.listen(3000, () => console.log("Servidor corriendo en http://localhost:3000"));
