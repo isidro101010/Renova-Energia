@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Facturación</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.15.349/pdf.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.5/xlsx.full.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -71,9 +70,9 @@
     </header>
     <main>
         <section id="upload-section">
-            <h2>Cargar Facturas</h2>
+            <h2>Cargar Factura PDF</h2>
             <form id="upload-form">
-                <input type="file" id="file-upload" accept=".pdf,.xlsx" required>
+                <input type="file" id="file-upload" accept=".pdf" required>
                 <button type="submit">Subir Factura</button>
             </form>
             <h3>Buscar Facturas</h3>
@@ -90,28 +89,13 @@
                         <th>RUC</th>
                         <th>Provincia</th>
                         <th>Ciudad</th>
-                        <th>Lista Precio</th>
-                        <th>Canal</th>
-                        <th>Sub Canal</th>
-                        <th>Vendedor</th>
-                        <th>Cuentas</th>
                         <th>Código</th>
                         <th>Modelo</th>
-                        <th>Proveedor</th>
                         <th>Cantidad</th>
                         <th>Costo Unitario</th>
-                        <th>Costo Total</th>
-                        <th>IVA Pagado</th>
-                        <th>Total Facturado</th>
-                        <th>Precio Unitario</th>
                         <th>Precio Total</th>
-                        <th>IVA Cobrado</th>
-                        <th>Total a Facturar</th>
-                        <th>Utilidad</th>
-                        <th>Crédito</th>
-                        <th>Condiciones de Crédito</th>
-                        <th>Pendientes</th>
-                        <th>Perdido</th>
+                        <th>IVA</th>
+                        <th>Total Facturado</th>
                         <th>Acción</th>
                     </tr>
                 </thead>
@@ -137,32 +121,22 @@
             const file = fileInput.files[0];
 
             if (file) {
-                const extension = file.name.split('.').pop().toLowerCase();
+                const reader = new FileReader();
+                reader.onload = async function () {
+                    const typedArray = new Uint8Array(this.result);
+                    const pdf = await pdfjsLib.getDocument(typedArray).promise;
 
-                if (extension === "pdf") {
-                    processPDF(file);
-                } else if (extension === "xlsx") {
-                    processExcel(file);
-                }
+                    const text = await extractTextFromPDF(pdf);
+                    const newInvoice = processPDFText(text);
+                    if (newInvoice) {
+                        invoices.push(newInvoice);
+                        localStorage.setItem("invoices", JSON.stringify(invoices)); // Guardar en Local Storage
+                        populateTable(invoices);
+                    }
+                };
+                reader.readAsArrayBuffer(file);
             }
         });
-
-        function processPDF(file) {
-            const reader = new FileReader();
-            reader.onload = async function () {
-                const typedArray = new Uint8Array(this.result);
-                const pdf = await pdfjsLib.getDocument(typedArray).promise;
-
-                const text = await extractTextFromPDF(pdf);
-                const newInvoice = extractDataFromPDF(text);
-                if (newInvoice) {
-                    invoices.push(newInvoice);
-                    localStorage.setItem("invoices", JSON.stringify(invoices)); // Guardar en Local Storage
-                    populateTable(invoices);
-                }
-            };
-            reader.readAsArrayBuffer(file);
-        }
 
         async function extractTextFromPDF(pdf) {
             let text = '';
@@ -174,84 +148,56 @@
             return text;
         }
 
-        function extractDataFromPDF(text) {
-            // Extraer datos específicos del formato de la factura PDF
+        function processPDFText(text) {
             const factura = text.match(/FACTURA\s+(\d+-\d+-\d+)/)?.[1] || "N/A";
             const cliente = text.match(/Razón Social\/ Nombres y Apellidos:\s*(.+?)\s*RUC:/)?.[1] || "N/A";
             const ruc = text.match(/R\.U\.C\.\s+(\d+)/)?.[1] || "N/A";
             const fecha = text.match(/Fecha Emisión:\s*(\d{2}\/\d{2}\/\d{4})/)?.[1] || "N/A";
-            const valorTotal = text.match(/VALOR TOTAL\s+([\d.,]+)/)?.[1]?.replace(",", "") || "N/A";
+            const provincia = "Guayas";
+            const ciudad = "Guayaquil";
+            const totalFacturado = text.match(/VALOR TOTAL\s+([\d.,]+)/)?.[1]?.replace(",", "") || "N/A";
+            const iva = text.match(/I\.V\.A\.\s*([\d.,]+)/)?.[1]?.replace(",", "") || "N/A";
 
-            if (factura !== "N/A" && cliente !== "N/A") {
-                return {
+            const productos = [];
+            const regexProductos = /(\w{2,5}\d+)\s+(.+?)\s+(\d+)\s+([\d.,]+)\s+([\d.,]+)/g;
+            let match;
+            while ((match = regexProductos.exec(text)) !== null) {
+                productos.push({
+                    codigo: match[1],
+                    modelo: match[2],
+                    cantidad: match[3],
+                    costoUnitario: match[4],
+                    precioTotal: match[5],
+                });
+            }
+
+            if (factura !== "N/A" && cliente !== "N/A" && productos.length > 0) {
+                const rows = productos.map(producto => ({
                     factura,
-                    dia: fecha.split("/")[0] || "N/A",
-                    mes: fecha.split("/")[1] || "N/A",
-                    ano: fecha.split("/")[2] || "N/A",
+                    dia: fecha.split("/")[0],
+                    mes: fecha.split("/")[1],
+                    ano: fecha.split("/")[2],
                     fecha_entrega: fecha,
                     cliente,
                     ruc,
-                    provincia: "Guayas",
-                    ciudad: "Guayaquil",
-                    lista_precio: "N/A",
-                    canal: "N/A",
-                    sub_canal: "N/A",
-                    vendedor: "N/A",
-                    cuentas: "N/A",
-                    codigo: "N/A",
-                    modelo: "N/A",
-                    proveedor: "N/A",
-                    cantidad: "N/A",
-                    costo_unitario: "N/A",
-                    costo_total: "N/A",
-                    iva_pagado: "N/A",
-                    total_facturado: valorTotal,
-                    precio_unitario: "N/A",
-                    precio_total: valorTotal,
-                    iva_cobrado: "N/A",
-                    total_a_facturar: valorTotal,
-                    utilidad: "N/A",
-                    credito: "N/A",
-                    condiciones_credito: "N/A",
-                    pendientes: "N/A",
-                    perdido: "N/A"
-                };
+                    provincia,
+                    ciudad,
+                    ...producto,
+                    iva,
+                    totalFacturado
+                }));
+                return rows;
             } else {
                 alert("No se pudo procesar el archivo PDF. Asegúrate de que el formato sea correcto.");
-                return null;
+                return [];
             }
-        }
-
-        function processExcel(file) {
-            const reader = new FileReader();
-            reader.onload = function (e) {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-                const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-
-                rows.slice(1).forEach(row => {
-                    const newInvoice = {
-                        factura: row[0] || "N/A",
-                        cliente: row[1] || "N/A",
-                        ruc: row[2] || "N/A",
-                        fecha: row[3] || "N/A",
-                        total: row[4] || "N/A",
-                    };
-                    invoices.push(newInvoice);
-                });
-
-                localStorage.setItem("invoices", JSON.stringify(invoices));
-                populateTable(invoices);
-            };
-            reader.readAsArrayBuffer(file);
         }
 
         function populateTable(invoices) {
             const tableBody = document.getElementById('invoice-table').querySelector('tbody');
             tableBody.innerHTML = ''; // Limpiar datos previos
 
-            invoices.forEach((invoice, index) => {
+            invoices.flat().forEach((invoice, index) => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td>${invoice.factura}</td>
@@ -263,28 +209,13 @@
                     <td>${invoice.ruc}</td>
                     <td>${invoice.provincia}</td>
                     <td>${invoice.ciudad}</td>
-                    <td>${invoice.lista_precio}</td>
-                    <td>${invoice.canal}</td>
-                    <td>${invoice.sub_canal}</td>
-                    <td>${invoice.vendedor}</td>
-                    <td>${invoice.cuentas}</td>
                     <td>${invoice.codigo}</td>
                     <td>${invoice.modelo}</td>
-                    <td>${invoice.proveedor}</td>
                     <td>${invoice.cantidad}</td>
-                    <td>${invoice.costo_unitario}</td>
-                    <td>${invoice.costo_total}</td>
-                    <td>${invoice.iva_pagado}</td>
-                    <td>${invoice.total_facturado}</td>
-                    <td>${invoice.precio_unitario}</td>
-                    <td>${invoice.precio_total}</td>
-                    <td>${invoice.iva_cobrado}</td>
-                    <td>${invoice.total_a_facturar}</td>
-                    <td>${invoice.utilidad}</td>
-                    <td>${invoice.credito}</td>
-                    <td>${invoice.condiciones_credito}</td>
-                    <td>${invoice.pendientes}</td>
-                    <td>${invoice.perdido}</td>
+                    <td>${invoice.costoUnitario}</td>
+                    <td>${invoice.precioTotal}</td>
+                    <td>${invoice.iva}</td>
+                    <td>${invoice.totalFacturado}</td>
                     <td><button onclick="deleteRow(${index})">Borrar</button></td>
                 `;
                 tableBody.appendChild(row);
