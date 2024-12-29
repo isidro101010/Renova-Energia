@@ -24,6 +24,7 @@
         }
         main {
             padding: 20px;
+            display: none; /* Ocultar hasta que se autentique */
         }
         form {
             margin: 20px 0;
@@ -62,12 +63,27 @@
         #search-bar {
             margin-bottom: 20px;
         }
+        #login-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
     </style>
 </head>
 <body>
     <header>
         <h1>Sistema de Facturación</h1>
     </header>
+    <div id="login-section">
+        <h2>Acceso al Sistema</h2>
+        <form id="login-form">
+            <input type="password" id="password" placeholder="Contraseña" required>
+            <button type="submit">Ingresar</button>
+        </form>
+        <p id="login-error" style="color: red; display: none;">Contraseña incorrecta</p>
+    </div>
     <main>
         <section id="upload-section">
             <h2>Cargar Factura PDF</h2>
@@ -81,7 +97,10 @@
                 <thead>
                     <tr>
                         <th>Factura</th>
-                        <th>Texto Completo</th>
+                        <th>Cliente</th>
+                        <th>RUC</th>
+                        <th>Productos</th>
+                        <th>Total Facturado</th>
                         <th>Acción</th>
                     </tr>
                 </thead>
@@ -95,7 +114,19 @@
         <p>Sistema de Facturación - 2024</p>
     </footer>
     <script>
+        const PASSWORD = "mcm352"; // Contraseña para acceder
         let invoices = JSON.parse(localStorage.getItem("invoices")) || []; // Recuperar facturas guardadas
+
+        document.getElementById("login-form").addEventListener("submit", (e) => {
+            e.preventDefault();
+            const password = document.getElementById("password").value;
+            if (password === PASSWORD) {
+                document.getElementById("login-section").style.display = "none";
+                document.querySelector("main").style.display = "block";
+            } else {
+                document.getElementById("login-error").style.display = "block";
+            }
+        });
 
         document.addEventListener("DOMContentLoaded", () => {
             populateTable(invoices);
@@ -113,7 +144,7 @@
                     const pdf = await pdfjsLib.getDocument(typedArray).promise;
 
                     const text = await extractTextFromPDF(pdf);
-                    const newInvoice = { factura: file.name, texto: text };
+                    const newInvoice = processText(text, file.name);
                     invoices.push(newInvoice);
                     localStorage.setItem("invoices", JSON.stringify(invoices)); // Guardar en Local Storage
                     populateTable(invoices);
@@ -132,6 +163,28 @@
             return text.trim();
         }
 
+        function processText(text, fileName) {
+            const factura = text.match(/FACTURA\s+(\d+-\d+-\d+)/)?.[1] || "No encontrada";
+            const cliente = text.match(/Razón Social\/ Nombres y Apellidos:\s*(.+?)\s*RUC:/)?.[1] || "No encontrado";
+            const ruc = text.match(/R\.U\.C\.\s+(\d+)/)?.[1] || "No encontrado";
+            const totalFacturado = text.match(/VALOR TOTAL\s+([\d.,]+)/)?.[1]?.replace(",", ".") || "No encontrado";
+            const productos = [];
+            const regexProductos = /(\w+)\s+(.+?)\s+(\d+)\s+([\d.,]+)\s+([\d.,]+)/g;
+            let match;
+
+            while ((match = regexProductos.exec(text)) !== null) {
+                productos.push(`${match[2]} (Cant: ${match[3]}, Precio: ${match[5]})`);
+            }
+
+            return {
+                factura: factura || fileName,
+                cliente,
+                ruc,
+                productos: productos.join(", ") || "No especificado",
+                totalFacturado,
+            };
+        }
+
         function populateTable(invoices) {
             const tableBody = document.getElementById('invoice-table').querySelector('tbody');
             tableBody.innerHTML = ''; // Limpiar datos previos
@@ -140,7 +193,10 @@
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td>${invoice.factura}</td>
-                    <td><pre>${invoice.texto}</pre></td>
+                    <td>${invoice.cliente}</td>
+                    <td>${invoice.ruc}</td>
+                    <td>${invoice.productos}</td>
+                    <td>${invoice.totalFacturado}</td>
                     <td><button onclick="deleteRow(${index})">Borrar</button></td>
                 `;
                 tableBody.appendChild(row);
