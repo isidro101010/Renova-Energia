@@ -1,146 +1,191 @@
-// Importar módulos necesarios
-const express = require("express");
-const multer = require("multer");
-const cors = require("cors");
-const fs = require("fs");
-const { spawn } = require("child_process");
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Facturación</title>
+    <style>
+        /* Estilos generales */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+        header {
+            background-color: #005f99;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        h1 {
+            margin: 0;
+        }
+        main {
+            padding: 20px;
+        }
+        form {
+            margin: 20px 0;
+        }
+        input, button {
+            display: block;
+            margin: 10px 0;
+            padding: 10px;
+            width: 100%;
+            max-width: 400px;
+        }
+        button {
+            background-color: #ff6600;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #cc5200;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #005f99;
+            color: white;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Sistema de Facturación</h1>
+    </header>
+    <main>
+        <!-- Cargar Facturas -->
+        <section id="upload-section">
+            <h2>Cargar Factura</h2>
+            <form id="upload-form">
+                <input type="file" id="file-upload" accept=".xlsx,.csv,.xls" required>
+                <button type="submit">Subir Factura</button>
+            </form>
+            <h3>Facturas Procesadas</h3>
+            <table id="invoice-table">
+                <thead>
+                    <tr>
+                        <th>Factura</th>
+                        <th>Día</th>
+                        <th>Mes</th>
+                        <th>Año</th>
+                        <th>Fecha de Entrega</th>
+                        <th>Cliente</th>
+                        <th>RUC</th>
+                        <th>Provincia</th>
+                        <th>Ciudad</th>
+                        <th>Lista Precio</th>
+                        <th>Canal</th>
+                        <th>Sub Canal</th>
+                        <th>Vendedor</th>
+                        <th>Cuentas</th>
+                        <th>Código</th>
+                        <th>Modelo</th>
+                        <th>Proveedor</th>
+                        <th>Cantidad</th>
+                        <th>Costo Unitario</th>
+                        <th>Costo Total</th>
+                        <th>IVA Pagado</th>
+                        <th>Total Facturado</th>
+                        <th>Precio Unitario</th>
+                        <th>Precio Total</th>
+                        <th>IVA Cobrado</th>
+                        <th>Total a Facturar</th>
+                        <th>Utilidad</th>
+                        <th>Crédito</th>
+                        <th>Condiciones de Crédito</th>
+                        <th>Pendientes</th>
+                        <th>Perdido</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Aquí se llenarán los datos dinámicamente -->
+                </tbody>
+            </table>
+        </section>
+    </main>
+    <footer>
+        <p>Sistema de Facturación - 2024</p>
+    </footer>
+    <script>
+        // Manejo de eventos para la carga de facturas
+        document.getElementById('upload-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const fileInput = document.getElementById('file-upload');
+            const file = fileInput.files[0];
 
-// Configuración del servidor
-const app = express();
-const upload = multer({ dest: "uploads/" });
+            if (file) {
+                const formData = new FormData();
+                formData.append('file', file);
 
-// Configurar middlewares
-app.use(cors());
-app.use(express.json());
+                // Enviar archivo al backend (simulado aquí)
+                fetch('http://localhost:3000/upload', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => populateTable(data.invoices))
+                .catch(error => console.error('Error:', error));
+            }
+        });
 
-// RUTA PRINCIPAL PARA HTML (Frontend incluido aquí mismo)
-app.get("/", (req, res) => {
-    res.send(`
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Sistema de Facturación</title>
-            <style>
-                body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0; color: #333; }
-                header { background-color: #005f99; color: white; padding: 20px; text-align: center; }
-                h1 { margin: 0; }
-                main { padding: 20px; }
-                form { margin: 20px 0; }
-                input, button { display: block; margin: 10px 0; padding: 10px; width: 100%; max-width: 400px; }
-                button { background-color: #ff6600; color: white; border: none; cursor: pointer; }
-                button:hover { background-color: #cc5200; }
-                table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-                th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
-                th { background-color: #005f99; color: white; }
-                .hidden { display: none; }
-            </style>
-        </head>
-        <body>
-            <header>
-                <h1>Sistema de Facturación</h1>
-            </header>
-            <main>
-                <section id="upload-section">
-                    <h2>Cargar Factura</h2>
-                    <form id="upload-form">
-                        <input type="file" id="file-upload" accept=".xlsx,.csv,.xls" required>
-                        <button type="submit">Subir Factura</button>
-                    </form>
-                    <table id="invoice-table">
-                        <thead>
-                            <tr>
-                                <th>Factura</th>
-                                <th>Cliente</th>
-                                <th>Fecha de Entrega</th>
-                                <th>Total</th>
-                                <th>Estado</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Datos aquí -->
-                        </tbody>
-                    </table>
-                </section>
-            </main>
-            <footer>
-                <p>Sistema de Facturación - 2024</p>
-            </footer>
-            <script>
-                document.getElementById('upload-form').addEventListener('submit', (e) => {
-                    e.preventDefault();
-                    const fileInput = document.getElementById('file-upload');
-                    const file = fileInput.files[0];
+        // Función para rellenar la tabla con los datos
+        function populateTable(invoices) {
+            const tableBody = document.getElementById('invoice-table').querySelector('tbody');
+            tableBody.innerHTML = ''; // Limpiar datos previos
 
-                    if (file) {
-                        const formData = new FormData();
-                        formData.append('file', file);
-
-                        fetch('/upload', {
-                            method: 'POST',
-                            body: formData
-                        })
-                        .then(response => response.json())
-                        .then(data => populateTable(data.invoices))
-                        .catch(error => console.error('Error:', error));
-                    }
-                });
-
-                function populateTable(invoices) {
-                    const tableBody = document.getElementById('invoice-table').querySelector('tbody');
-                    tableBody.innerHTML = '';
-                    invoices.forEach(invoice => {
-                        const row = document.createElement('tr');
-                        row.innerHTML = `
-                            <td>${invoice.factura}</td>
-                            <td>${invoice.cliente}</td>
-                            <td>${invoice.fecha_entrega}</td>
-                            <td>${invoice.total}</td>
-                            <td>${invoice.estado}</td>
-                        `;
-                        tableBody.appendChild(row);
-                    });
-                }
-            </script>
-        </body>
-        </html>
-    `);
-});
-
-// RUTA PARA SUBIR ARCHIVOS Y PROCESARLOS (IA incluida aquí mismo)
-app.post("/upload", upload.single("file"), (req, res) => {
-    const file = req.file;
-
-    if (!file) {
-        return res.status(400).send("No se subió ningún archivo.");
-    }
-
-    // Simular procesamiento de IA con Python en Node.js
-    const processFile = (filePath) => {
-        const xlsx = require("xlsx");
-        const workbook = xlsx.readFile(filePath);
-        const sheetName = workbook.SheetNames[0];
-        const sheetData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
-
-        return sheetData.map(row => ({
-            factura: row["Factura"] || "N/A",
-            cliente: row["Cliente"] || "N/A",
-            fecha_entrega: row["Fecha de Entrega"] || "N/A",
-            total: row["Total Facturado"] || 0,
-            estado: row["Estado"] || "Pendiente"
-        }));
-    };
-
-    try {
-        const invoices = processFile(file.path);
-        fs.unlinkSync(file.path); // Eliminar archivo después de procesar
-        res.json({ invoices });
-    } catch (error) {
-        console.error("Error procesando archivo:", error);
-        res.status(500).send("Error procesando archivo.");
-    }
-});
-
-// INICIAR SERVIDOR
-app.listen(3000, () => console.log("Servidor corriendo en http://localhost:3000"));
+            invoices.forEach(invoice => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${invoice.factura}</td>
+                    <td>${invoice.dia}</td>
+                    <td>${invoice.mes}</td>
+                    <td>${invoice.ano}</td>
+                    <td>${invoice.fecha_entrega}</td>
+                    <td>${invoice.cliente}</td>
+                    <td>${invoice.ruc}</td>
+                    <td>${invoice.provincia}</td>
+                    <td>${invoice.ciudad}</td>
+                    <td>${invoice.lista_precio}</td>
+                    <td>${invoice.canal}</td>
+                    <td>${invoice.sub_canal}</td>
+                    <td>${invoice.vendedor}</td>
+                    <td>${invoice.cuentas}</td>
+                    <td>${invoice.codigo}</td>
+                    <td>${invoice.modelo}</td>
+                    <td>${invoice.proveedor}</td>
+                    <td>${invoice.cantidad}</td>
+                    <td>${invoice.costo_unitario}</td>
+                    <td>${invoice.costo_total}</td>
+                    <td>${invoice.iva_pagado}</td>
+                    <td>${invoice.total_facturado}</td>
+                    <td>${invoice.precio_unitario}</td>
+                    <td>${invoice.precio_total}</td>
+                    <td>${invoice.iva_cobrado}</td>
+                    <td>${invoice.total_a_facturar}</td>
+                    <td>${invoice.utilidad}</td>
+                    <td>${invoice.credito}</td>
+                    <td>${invoice.condiciones_credito}</td>
+                    <td>${invoice.pendientes}</td>
+                    <td>${invoice.perdido}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+    </script>
+</body>
+</html>
