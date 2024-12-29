@@ -1,0 +1,26 @@
+import sys
+import pandas as pd
+import json
+
+def process_factura(file_path):
+    try:
+        data = pd.read_excel(file_path)
+        invoices = []
+
+        for _, row in data.iterrows():
+            invoices.append({
+                "factura": row.get('Factura', 'N/A'),
+                "cliente": row.get('Cliente', 'N/A'),
+                "fecha_entrega": row.get('Fecha de Entrega', 'N/A'),
+                "total": row.get('Total Facturado', 0),
+                "estado": row.get('Estado', 'Pendiente'),
+            })
+
+        return invoices
+    except Exception as e:
+        return str(e)
+
+if __name__ == "__main__":
+    file_path = sys.argv[1]
+    result = process_factura(file_path)
+    print(json.dumps(result))
