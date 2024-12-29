@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Facturación con ChatGPT</title>
+    <title>Sistema de Facturación con OCR</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.0.2/tesseract.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.15.349/pdf.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -59,13 +61,13 @@
 </head>
 <body>
     <header>
-        <h1>Sistema de Facturación con ChatGPT</h1>
+        <h1>Sistema de Facturación con OCR</h1>
     </header>
     <main>
         <h2>Cargar Factura PDF</h2>
         <form id="upload-form">
             <input type="file" id="file-upload" accept=".pdf" required>
-            <button type="submit">Subir Factura</button>
+            <button type="submit">Procesar Factura</button>
         </form>
         <h3>Resultados</h3>
         <table id="invoice-table">
@@ -115,38 +117,75 @@
             const file = fileInput.files[0];
 
             if (file) {
-                const formData = new FormData();
-                formData.append('file', file);
+                const fileReader = new FileReader();
+                fileReader.onload = async function () {
+                    const arrayBuffer = this.result;
 
-                const response = await fetch('http://localhost:3000/upload', {
-                    method: 'POST',
-                    body: formData,
-                });
+                    // Convert PDF to Image
+                    const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
+                    const page = await pdf.getPage(1);
+                    const viewport = page.getViewport({ scale: 2 });
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+                    canvas.height = viewport.height;
+                    canvas.width = viewport.width;
+                    await page.render({ canvasContext: context, viewport }).promise;
 
-                if (response.ok) {
-                    const data = await response.json();
-                    populateTable(data);
-                } else {
-                    alert('Error procesando el archivo.');
-                }
+                    // Use OCR to Extract Text
+                    const { data: { text } } = await Tesseract.recognize(canvas.toDataURL(), 'eng');
+
+                    // Process the Extracted Text
+                    const invoiceData = extractDataFromText(text);
+                    populateTable(invoiceData);
+                };
+
+                fileReader.readAsArrayBuffer(file);
             }
         });
+
+        function extractDataFromText(text) {
+            return {
+                factura: text.match(/Factura[:\s]+(\d+)/)?.[1] || '',
+                dia: text.match(/(\d{2})\/(\d{2})\/(\d{4})/)?.[1] || '',
+                mes: text.match(/(\d{2})\/(\d{2})\/(\d{4})/)?.[2] || '',
+                ano: text.match(/(\d{2})\/(\d{2})\/(\d{4})/)?.[3] || '',
+                fecha_entrega: text.match(/Fecha de Entrega[:\s]+([\d\/]+)/)?.[1] || '',
+                cliente: text.match(/Cliente[:\s]+(.+)/)?.[1] || '',
+                ruc: text.match(/RUC[:\s]+(\d+)/)?.[1] || '',
+                provincia: text.match(/Provincia[:\s]+(.+)/)?.[1] || '',
+                ciudad: text.match(/Ciudad[:\s]+(.+)/)?.[1] || '',
+                lista_precio: text.match(/Lista Precio[:\s]+(.+)/)?.[1] || '',
+                canal: text.match(/Canal[:\s]+(.+)/)?.[1] || '',
+                sub_canal: text.match(/Sub Canal[:\s]+(.+)/)?.[1] || '',
+                vendedor: text.match(/Vendedor[:\s]+(.+)/)?.[1] || '',
+                cuentas: text.match(/Cuentas[:\s]+(.+)/)?.[1] || '',
+                codigo: text.match(/Código[:\s]+(.+)/)?.[1] || '',
+                modelo: text.match(/Modelo[:\s]+(.+)/)?.[1] || '',
+                proveedor: text.match(/Proveedor[:\s]+(.+)/)?.[1] || '',
+                cantidad: text.match(/Cantidad[:\s]+(\d+)/)?.[1] || '',
+                costo_unitario: text.match(/Costo Unitario[:\s]+([\d.]+)/)?.[1] || '',
+                costo_total: text.match(/Costo Total[:\s]+([\d.]+)/)?.[1] || '',
+                iva_pagado: text.match(/IVA Pagado[:\s]+([\d.]+)/)?.[1] || '',
+                precio_unitario: text.match(/Precio Unitario[:\s]+([\d.]+)/)?.[1] || '',
+                precio_total: text.match(/Precio Total[:\s]+([\d.]+)/)?.[1] || '',
+                iva_cobrado: text.match(/IVA Cobrado[:\s]+([\d.]+)/)?.[1] || '',
+                total_a_facturar: text.match(/Total a Facturar[:\s]+([\d.]+)/)?.[1] || '',
+                utilidad: text.match(/Utilidad[:\s]+([\d.]+)/)?.[1] || '',
+                credito: text.match(/Crédito[:\s]+(.+)/)?.[1] || '',
+                condiciones_credito: text.match(/Condiciones de Crédito[:\s]+(.+)/)?.[1] || '',
+                pendientes: text.match(/Pendientes[:\s]+(.+)/)?.[1] || '',
+                perdido: text.match(/Perdido[:\s]+(.+)/)?.[1] || '',
+            };
+        }
 
         function populateTable(data) {
             const tableBody = document.getElementById('invoice-table').querySelector('tbody');
             tableBody.innerHTML = '';
             const row = document.createElement('tr');
 
-            const fields = [
-                'factura', 'dia', 'mes', 'ano', 'fecha_entrega', 'cliente', 'ruc', 'provincia', 'ciudad',
-                'lista_precio', 'canal', 'sub_canal', 'vendedor', 'cuentas', 'codigo', 'modelo', 'proveedor',
-                'cantidad', 'costo_unitario', 'costo_total', 'iva_pagado', 'precio_unitario', 'precio_total',
-                'iva_cobrado', 'total_a_facturar', 'utilidad', 'credito', 'condiciones_credito', 'pendientes', 'perdido'
-            ];
-
-            fields.forEach(field => {
+            Object.values(data).forEach(value => {
                 const cell = document.createElement('td');
-                cell.textContent = data[field] || '';
+                cell.textContent = value;
                 row.appendChild(cell);
             });
 
