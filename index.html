@@ -17,16 +17,27 @@
             color: white;
             padding: 20px;
             text-align: center;
+            position: relative;
         }
         h1 {
             margin: 0;
         }
+        .export-excel-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background-color: #4caf50;
+            color: white;
+            border: none;
+            padding: 10px;
+            cursor: pointer;
+        }
+        .export-excel-btn:hover {
+            background-color: #45a049;
+        }
         main {
             padding: 20px;
             display: none;
-        }
-        form {
-            margin: 20px 0;
         }
         textarea, input, button {
             margin: 5px 0;
@@ -75,33 +86,12 @@
             font-weight: bold;
             margin: 10px 0;
         }
-        .progress-bar-container {
-            width: 100%;
-            background-color: #ddd;
-            height: 20px;
-            margin: 10px 0;
-            position: relative;
-        }
-        .progress-bar {
-            height: 100%;
-            background-color: #4caf50;
-            width: 0%;
-            transition: width 0.5s;
-        }
-        .progress-text {
-            position: absolute;
-            width: 100%;
-            text-align: center;
-            top: 0;
-            line-height: 20px;
-            color: #333;
-            font-weight: bold;
-        }
     </style>
 </head>
 <body>
     <header>
         <h1>Sistema de Facturación Inteligente</h1>
+        <button class="export-excel-btn" id="export-excel">Exportar a Excel</button>
     </header>
     <div id="login-section">
         <h2>Acceso al Sistema</h2>
@@ -114,16 +104,8 @@
     <main>
         <section>
             <h2>Cargar Facturas</h2>
-            <form id="upload-form">
-                <input type="file" id="file-upload" accept=".xml">
-                <button type="submit">Subir Factura XML</button>
-            </form>
             <textarea id="text-input" rows="10" placeholder="Pega aquí las facturas en texto"></textarea>
             <button id="process-text">Procesar Texto</button>
-            <div class="progress-bar-container" id="progress-bar-container">
-                <div class="progress-bar" id="progress-bar"></div>
-                <div class="progress-text" id="progress-text">0%</div>
-            </div>
             <div>
                 <input type="text" id="search-bar" placeholder="Buscar por cliente, factura, etc.">
                 <span class="factura-count" id="factura-count">Facturas leídas: 0</span>
@@ -163,7 +145,7 @@
                     </tr>
                 </thead>
                 <tbody id="invoice-table">
-                    <!-- Datos serán añadidos dinámicamente -->
+                    <!-- Filas dinámicas -->
                 </tbody>
             </table>
         </section>
@@ -171,16 +153,18 @@
     <footer>
         <p>Sistema de Facturación Inteligente - 2024</p>
     </footer>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script>
         const PASSWORD = "mcm352";
         let invoices = JSON.parse(localStorage.getItem("invoices")) || [];
 
         document.getElementById("login-form").addEventListener("submit", (e) => {
             e.preventDefault();
-            const password = document.getElementById("password").value;
-            if (password === PASSWORD) {
+            const enteredPassword = document.getElementById("password").value.trim();
+            if (enteredPassword === PASSWORD) {
                 document.getElementById("login-section").style.display = "none";
                 document.querySelector("main").style.display = "block";
+                populateTable();
                 updateFacturaCount();
             } else {
                 document.getElementById("login-error").style.display = "block";
@@ -195,61 +179,52 @@
             }
 
             const rows = text.split(/\n/).map(line => line.trim()).filter(line => line);
-            const progressBar = document.getElementById("progress-bar");
-            const progressBarText = document.getElementById("progress-text");
-            const progressBarContainer = document.getElementById("progress-bar-container");
-            progressBarContainer.style.display = "block";
-
-            rows.forEach((row, index) => {
-                setTimeout(() => {
-                    const columns = row.split(/\s+/);
-                    if (columns.length >= 29) { // Número de columnas esperado
-                        invoices.push({
-                            factura: columns[0],
-                            fecha: columns[1],
-                            fecha_entrega: columns[2],
-                            cliente: columns[3],
-                            ruc: columns[4],
-                            provincia: columns[5],
-                            ciudad: columns[6],
-                            lista_precio: columns[7],
-                            canal: columns[8],
-                            sub_canal: columns[9],
-                            vendedor: columns[10],
-                            cuentas: columns[11],
-                            codigo: columns[12],
-                            modelo: columns[13],
-                            proveedor: columns[14],
-                            cantidad: columns[15],
-                            costo_unitario: columns[16],
-                            costo_total: columns[17],
-                            iva_pagado: columns[18],
-                            precio_unitario: columns[19],
-                            precio_total: columns[20],
-                            iva_cobrado: columns[21],
-                            total_facturado: columns[22],
-                            utilidad: columns[23],
-                            credito: columns[24],
-                            condiciones_credito: columns[25],
-                            pendientes: columns[26],
-                            perdido: columns[27]
-                        });
-                    }
-
-                    // Actualizar barra de progreso
-                    const percentage = Math.round(((index + 1) / rows.length) * 100);
-                    progressBar.style.width = `${percentage}%`;
-                    progressBarText.textContent = `${percentage}%`;
-
-                    if (index === rows.length - 1) {
-                        progressBarContainer.style.display = "none";
-                        invoices.sort((a, b) => new Date(b.fecha) - new Date(a.fecha)); // Ordenar por fecha
-                        localStorage.setItem("invoices", JSON.stringify(invoices));
-                        populateTable();
-                        updateFacturaCount();
-                    }
-                }, index * 50);
+            rows.forEach(row => {
+                const columns = row.split(/\s+/);
+                if (columns.length >= 29) {
+                    invoices.push({
+                        factura: columns[0],
+                        fecha: columns[1],
+                        fecha_entrega: columns[2],
+                        cliente: columns[3],
+                        ruc: columns[4],
+                        provincia: columns[5],
+                        ciudad: columns[6],
+                        lista_precio: columns[7],
+                        canal: columns[8],
+                        sub_canal: columns[9],
+                        vendedor: columns[10],
+                        cuentas: columns[11],
+                        codigo: columns[12],
+                        modelo: columns[13],
+                        proveedor: columns[14],
+                        cantidad: columns[15],
+                        costo_unitario: columns[16],
+                        costo_total: columns[17],
+                        iva_pagado: columns[18],
+                        precio_unitario: columns[19],
+                        precio_total: columns[20],
+                        iva_cobrado: columns[21],
+                        total_facturado: columns[22],
+                        utilidad: columns[23],
+                        credito: columns[24],
+                        condiciones_credito: columns[25],
+                        pendientes: columns[26],
+                        perdido: columns[27]
+                    });
+                }
             });
+
+            localStorage.setItem("invoices", JSON.stringify(invoices));
+            populateTable();
+            updateFacturaCount();
+        });
+
+        document.getElementById("export-excel").addEventListener("click", () => {
+            const ws = XLSX.utils.json_to_sheet(invoices);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Facturas");
+            XLSX.writeFile(wb, "Facturas.xlsx");
         });
 
         function populateTable() {
@@ -262,4 +237,27 @@
                 const deleteBtn = document.createElement("button");
                 deleteBtn.textContent = "Eliminar";
                 deleteBtn.classList.add("delete-btn");
-                deleteBtn.addEventListener("click", () =>
+                deleteBtn.addEventListener("click", () => {
+                    invoices.splice(index, 1);
+                    localStorage.setItem("invoices", JSON.stringify(invoices));
+                    populateTable();
+                    updateFacturaCount();
+                });
+                const deleteCell = document.createElement("td");
+                deleteCell.appendChild(deleteBtn);
+                row.appendChild(deleteCell);
+                tbody.appendChild(row);
+            });
+        }
+
+        function updateFacturaCount() {
+            document.getElementById("factura-count").textContent = `Facturas leídas: ${invoices.length}`;
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            populateTable();
+            updateFacturaCount();
+        });
+    </script>
+</body>
+</html>
