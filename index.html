@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Facturación Inteligente</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.15.349/pdf.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -16,8 +15,11 @@
         header {
             background-color: #005f99;
             color: white;
-            padding: 10px;
+            padding: 20px;
             text-align: center;
+        }
+        h1 {
+            margin: 0;
         }
         main {
             padding: 20px;
@@ -69,9 +71,9 @@
     </header>
     <main>
         <section>
-            <h2>Cargar Factura PDF</h2>
+            <h2>Cargar Factura XML</h2>
             <form id="upload-form">
-                <input type="file" id="file-upload" accept=".pdf">
+                <input type="file" id="file-upload" accept=".xml">
                 <button type="submit">Subir Factura</button>
             </form>
             <input type="text" id="search-bar" placeholder="Buscar por cliente, factura, etc.">
@@ -128,78 +130,61 @@
 
             if (file) {
                 const reader = new FileReader();
-                reader.onload = async function () {
-                    const typedArray = new Uint8Array(this.result);
-                    const pdf = await pdfjsLib.getDocument(typedArray).promise;
-
-                    const text = await extractTextFromPDF(pdf);
-                    const invoice = processInvoiceData(text);
+                reader.onload = function () {
+                    const parser = new DOMParser();
+                    const xml = parser.parseFromString(this.result, "application/xml");
+                    const invoice = processInvoiceData(xml);
                     invoices.push(invoice);
                     localStorage.setItem("invoices", JSON.stringify(invoices));
                     populateTable();
                 };
-                reader.readAsArrayBuffer(file);
+                reader.readAsText(file);
             }
         });
 
-        async function extractTextFromPDF(pdf) {
-            let text = "";
-            for (let i = 1; i <= pdf.numPages; i++) {
-                const page = await pdf.getPage(i);
-                const content = await page.getTextContent();
-                text += content.items.map((item) => item.str).join(" ") + "\n";
-            }
-            return text.trim();
-        }
-
-        function processInvoiceData(text) {
-            const patterns = {
-                factura: /Factura\s+Nro[:\s]+(\d+-\d+-\d+)/,
-                dia: /Fecha[:\s]+(\d{2})/,
-                mes: /Fecha[:\s]+\d{2}\/(\d{2})/,
-                ano: /Fecha[:\s]+\d{2}\/\d{2}\/(\d{4})/,
-                fecha_entrega: /Fecha\s+Entrega[:\s]+([\d\/]+)/,
-                cliente: /Cliente[:\s]+(.+)/,
-                ruc: /RUC[:\s]+(\d+)/,
-                provincia: /Provincia[:\s]+(.+)/,
-                ciudad: /Ciudad[:\s]+(.+)/,
-                lista_precio: /Lista\s+Precio[:\s]+(.+)/,
-                canal: /Canal[:\s]+(.+)/,
-                sub_canal: /Sub\s+Canal[:\s]+(.+)/,
-                vendedor: /Vendedor[:\s]+(.+)/,
-                cuentas: /Cuentas[:\s]+(.+)/,
-                codigo: /CANTIDAD\s+CÓDIGO\s+(.+?)\s+/,
-                modelo: /DESCRIPCIÓN\s+(.+?)\s+PRECIO/,
-                proveedor: /Proveedor[:\s]+(.+)/,
-                cantidad: /CANTIDAD\s+(\d+,\d+)/,
-                costo_unitario: /PRECIO\s+UNITARIO\s+([\d.,]+)/,
-                costo_total: /PRECIO\s+TOTAL\s+([\d.,]+)/,
-                iva_pagado: /IVA\s+Pagado[:\s]+([\d.,]+)/,
-                precio_unitario: /Precio\s+Unitario[:\s]+([\d.,]+)/,
-                precio_total: /Precio\s+Total[:\s]+([\d.,]+)/,
-                iva_cobrado: /IVA\s+Cobrado[:\s]+([\d.,]+)/,
-                total_facturado: /VALOR\s+TOTAL\s+([\d.,]+)/,
-                utilidad: /Utilidad[:\s]+([\d.,]+)/,
-                credito: /Crédito[:\s]+(.+)/,
-                condiciones_credito: /Condiciones\s+Crédito[:\s]+(.+)/,
-                pendientes: /Pendientes[:\s]+(.+)/,
-                perdido: /Perdido[:\s]+(.+)/,
+        function processInvoiceData(xml) {
+            const getTagValue = (tag) => xml.getElementsByTagName(tag)[0]?.textContent || "No encontrado";
+            return {
+                factura: getTagValue("FacturaNro"),
+                dia: getTagValue("Fecha").split("/")[0],
+                mes: getTagValue("Fecha").split("/")[1],
+                ano: getTagValue("Fecha").split("/")[2],
+                fecha_entrega: getTagValue("FechaEntrega"),
+                cliente: getTagValue("Cliente"),
+                ruc: getTagValue("RUC"),
+                provincia: getTagValue("Provincia"),
+                ciudad: getTagValue("Ciudad"),
+                lista_precio: getTagValue("ListaPrecio"),
+                canal: getTagValue("Canal"),
+                sub_canal: getTagValue("SubCanal"),
+                vendedor: getTagValue("Vendedor"),
+                cuentas: getTagValue("Cuentas"),
+                codigo: getTagValue("Codigo"),
+                modelo: getTagValue("Modelo"),
+                proveedor: getTagValue("Proveedor"),
+                cantidad: getTagValue("Cantidad"),
+                costo_unitario: getTagValue("CostoUnitario"),
+                costo_total: getTagValue("CostoTotal"),
+                iva_pagado: getTagValue("IVAPagado"),
+                precio_unitario: getTagValue("PrecioUnitario"),
+                precio_total: getTagValue("PrecioTotal"),
+                iva_cobrado: getTagValue("IVACobrado"),
+                total_facturado: getTagValue("TotalFacturado"),
+                utilidad: getTagValue("Utilidad"),
+                credito: getTagValue("Credito"),
+                condiciones_credito: getTagValue("CondicionesCredito"),
+                pendientes: getTagValue("Pendientes"),
+                perdido: getTagValue("Perdido"),
             };
-
-            return Object.fromEntries(
-                Object.entries(patterns).map(([key, regex]) => [key, text.match(regex)?.[1] || "No encontrado"])
-            );
         }
 
         function populateTable() {
             const tbody = document.getElementById("invoice-table");
             tbody.innerHTML = "";
 
-            invoices.forEach((invoice, index) => {
+            invoices.forEach((invoice) => {
                 const row = document.createElement("tr");
-                row.innerHTML = Object.values(invoice)
-                    .map((value) => `<td>${value}</td>`)
-                    .join("");
+                row.innerHTML = Object.values(invoice).map((value) => `<td>${value}</td>`).join("");
                 tbody.appendChild(row);
             });
         }
