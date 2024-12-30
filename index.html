@@ -80,13 +80,22 @@
             background-color: #ddd;
             height: 20px;
             margin: 10px 0;
-            display: none;
+            position: relative;
         }
         .progress-bar {
             height: 100%;
             background-color: #4caf50;
             width: 0%;
             transition: width 0.5s;
+        }
+        .progress-text {
+            position: absolute;
+            width: 100%;
+            text-align: center;
+            top: 0;
+            line-height: 20px;
+            color: #333;
+            font-weight: bold;
         }
     </style>
 </head>
@@ -113,6 +122,7 @@
             <button id="process-text">Procesar Texto</button>
             <div class="progress-bar-container" id="progress-bar-container">
                 <div class="progress-bar" id="progress-bar"></div>
+                <div class="progress-text" id="progress-text">0%</div>
             </div>
             <div>
                 <input type="text" id="search-bar" placeholder="Buscar por cliente, factura, etc.">
@@ -153,7 +163,7 @@
                     </tr>
                 </thead>
                 <tbody id="invoice-table">
-                    <!-- Filas se agregarán dinámicamente -->
+                    <!-- Datos serán añadidos dinámicamente -->
                 </tbody>
             </table>
         </section>
@@ -186,13 +196,14 @@
 
             const rows = text.split(/\n/).map(line => line.trim()).filter(line => line);
             const progressBar = document.getElementById("progress-bar");
+            const progressBarText = document.getElementById("progress-text");
             const progressBarContainer = document.getElementById("progress-bar-container");
             progressBarContainer.style.display = "block";
 
             rows.forEach((row, index) => {
                 setTimeout(() => {
-                    const columns = row.split(/\s+/); // Ajustar según la estructura exacta
-                    if (columns.length >= 29) { // Adaptar al número de clasificaciones
+                    const columns = row.split(/\s+/);
+                    if (columns.length >= 29) { // Número de columnas esperado
                         invoices.push({
                             factura: columns[0],
                             fecha: columns[1],
@@ -226,9 +237,10 @@
                     }
 
                     // Actualizar barra de progreso
-                    progressBar.style.width = `${((index + 1) / rows.length) * 100}%`;
+                    const percentage = Math.round(((index + 1) / rows.length) * 100);
+                    progressBar.style.width = `${percentage}%`;
+                    progressBarText.textContent = `${percentage}%`;
 
-                    // Finalizar procesamiento
                     if (index === rows.length - 1) {
                         progressBarContainer.style.display = "none";
                         invoices.sort((a, b) => new Date(b.fecha) - new Date(a.fecha)); // Ordenar por fecha
@@ -236,7 +248,7 @@
                         populateTable();
                         updateFacturaCount();
                     }
-                }, index * 50); // Procesar con retraso para simular progresión
+                }, index * 50);
             });
         });
 
@@ -250,27 +262,4 @@
                 const deleteBtn = document.createElement("button");
                 deleteBtn.textContent = "Eliminar";
                 deleteBtn.classList.add("delete-btn");
-                deleteBtn.addEventListener("click", () => {
-                    invoices.splice(index, 1);
-                    localStorage.setItem("invoices", JSON.stringify(invoices));
-                    populateTable();
-                    updateFacturaCount();
-                });
-                const deleteCell = document.createElement("td");
-                deleteCell.appendChild(deleteBtn);
-                row.appendChild(deleteCell);
-                tbody.appendChild(row);
-            });
-        }
-
-        function updateFacturaCount() {
-            document.getElementById("factura-count").textContent = `Facturas leídas: ${invoices.length}`;
-        }
-
-        document.addEventListener("DOMContentLoaded", () => {
-            populateTable();
-            updateFacturaCount();
-        });
-
-        document.getElementById("search-bar").addEventListener("input", (e) => {
-            const query = e.target.value
+                deleteBtn.addEventListener("click", () =>
