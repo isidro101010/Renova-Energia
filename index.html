@@ -24,8 +24,8 @@
         }
         .export-excel-btn {
             position: absolute;
-            top: 10px;
-            left: 10px;
+            top: 15px;
+            left: 15px;
             background-color: #4caf50;
             color: white;
             border: none;
@@ -90,32 +90,6 @@
             font-weight: bold;
             margin: 10px 0;
         }
-        .progress-bar-container {
-            width: 100%;
-            background-color: #ddd;
-            height: 20px;
-            margin: 10px 0;
-            position: relative;
-        }
-        .progress-bar {
-            height: 100%;
-            background-color: #4caf50;
-            width: 0%;
-            transition: width 0.5s;
-        }
-        .progress-text {
-            position: absolute;
-            width: 100%;
-            text-align: center;
-            top: 0;
-            line-height: 20px;
-            color: #333;
-            font-weight: bold;
-        }
-        #login-error {
-            color: red;
-            display: none;
-        }
     </style>
 </head>
 <body>
@@ -140,10 +114,6 @@
             </form>
             <textarea id="text-input" rows="10" placeholder="Pega aquí las facturas en texto"></textarea>
             <button id="process-text">Procesar Texto</button>
-            <div class="progress-bar-container" id="progress-bar-container">
-                <div class="progress-bar" id="progress-bar"></div>
-                <div class="progress-text" id="progress-text">0%</div>
-            </div>
             <div>
                 <input type="text" id="search-bar" placeholder="Buscar por cliente, factura, etc.">
                 <span class="factura-count" id="factura-count">Facturas leídas: 0</span>
@@ -286,4 +256,27 @@
                 const deleteBtn = document.createElement("button");
                 deleteBtn.textContent = "Eliminar";
                 deleteBtn.classList.add("delete-btn");
-                deleteBtn.addEvent
+                deleteBtn.addEventListener("click", () => {
+                    invoices.splice(index, 1);
+                    localStorage.setItem("invoices", JSON.stringify(invoices));
+                    populateTable();
+                    updateFacturaCount();
+                });
+                const deleteCell = document.createElement("td");
+                deleteCell.appendChild(deleteBtn);
+                row.appendChild(deleteCell);
+                tbody.appendChild(row);
+            });
+        }
+
+        function updateFacturaCount() {
+            document.getElementById("factura-count").textContent = `Facturas leídas: ${invoices.length}`;
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            populateTable();
+            updateFacturaCount();
+        });
+    </script>
+</body>
+</html>
