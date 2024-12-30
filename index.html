@@ -71,6 +71,10 @@
             padding: 5px;
             cursor: pointer;
         }
+        .factura-count {
+            font-weight: bold;
+            margin: 10px 0;
+        }
     </style>
 </head>
 <body>
@@ -92,7 +96,10 @@
                 <input type="file" id="file-upload" accept=".xml">
                 <button type="submit">Subir Factura</button>
             </form>
-            <input type="text" id="search-bar" placeholder="Buscar por cliente, factura, etc.">
+            <div>
+                <input type="text" id="search-bar" placeholder="Buscar por cliente, factura, etc.">
+                <span class="factura-count" id="factura-count">Facturas leídas: 0</span>
+            </div>
             <table>
                 <thead>
                     <tr>
@@ -146,6 +153,7 @@
             if (password === PASSWORD) {
                 document.getElementById("login-section").style.display = "none";
                 document.querySelector("main").style.display = "block";
+                updateFacturaCount();
             } else {
                 document.getElementById("login-error").style.display = "block";
             }
@@ -165,9 +173,10 @@
                     if (cdata) {
                         const cdataXML = new DOMParser().parseFromString(cdata, "application/xml");
                         const invoice = processXMLData(cdataXML);
-                        invoices.push(...invoice); // Add all processed invoices
+                        invoices.push(...invoice);
                         localStorage.setItem("invoices", JSON.stringify(invoices));
                         populateTable();
+                        updateFacturaCount();
                     } else {
                         alert("No se encontró la información esperada en el archivo XML.");
                     }
@@ -215,7 +224,7 @@
             const tbody = document.getElementById("invoice-table");
             tbody.innerHTML = "";
 
-            invoices.sort((a, b) => a.modelo.localeCompare(b.modelo)).forEach((invoice, index) => {
+            invoices.forEach((invoice, index) => {
                 const row = document.createElement("tr");
                 row.innerHTML = Object.values(invoice).map((value) => `<td>${value}</td>`).join("");
                 const deleteBtn = document.createElement("button");
@@ -225,6 +234,7 @@
                     invoices.splice(index, 1);
                     localStorage.setItem("invoices", JSON.stringify(invoices));
                     populateTable();
+                    updateFacturaCount();
                 });
                 const deleteCell = document.createElement("td");
                 deleteCell.appendChild(deleteBtn);
@@ -233,7 +243,14 @@
             });
         }
 
-        document.addEventListener("DOMContentLoaded", () => populateTable());
+        function updateFacturaCount() {
+            document.getElementById("factura-count").textContent = `Facturas leídas: ${invoices.length}`;
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            populateTable();
+            updateFacturaCount();
+        });
 
         document.getElementById("search-bar").addEventListener("input", (e) => {
             const query = e.target.value.toLowerCase();
