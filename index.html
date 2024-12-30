@@ -153,35 +153,35 @@
         }
 
         function processInvoiceData(text) {
-            // Usa IA o regex avanzados para buscar patrones
             const patterns = {
-                factura: /Factura Nro[:\s]+(\d+-\d+-\d+)/,
+                factura: /Factura\s+Nro[:\s]+(\d+-\d+-\d+)/,
                 dia: /Fecha[:\s]+(\d{2})/,
                 mes: /Fecha[:\s]+\d{2}\/(\d{2})/,
                 ano: /Fecha[:\s]+\d{2}\/\d{2}\/(\d{4})/,
+                fecha_entrega: /Fecha\s+Entrega[:\s]+([\d\/]+)/,
                 cliente: /Cliente[:\s]+(.+)/,
                 ruc: /RUC[:\s]+(\d+)/,
                 provincia: /Provincia[:\s]+(.+)/,
                 ciudad: /Ciudad[:\s]+(.+)/,
-                lista_precio: /Lista Precio[:\s]+(.+)/,
+                lista_precio: /Lista\s+Precio[:\s]+(.+)/,
                 canal: /Canal[:\s]+(.+)/,
-                sub_canal: /Sub Canal[:\s]+(.+)/,
+                sub_canal: /Sub\s+Canal[:\s]+(.+)/,
                 vendedor: /Vendedor[:\s]+(.+)/,
                 cuentas: /Cuentas[:\s]+(.+)/,
-                codigo: /Código[:\s]+(.+)/,
-                modelo: /Modelo[:\s]+(.+)/,
+                codigo: /CANTIDAD\s+CÓDIGO\s+(.+?)\s+/,
+                modelo: /DESCRIPCIÓN\s+(.+?)\s+PRECIO/,
                 proveedor: /Proveedor[:\s]+(.+)/,
-                cantidad: /Cantidad[:\s]+(\d+)/,
-                costo_unitario: /Costo Unitario[:\s]+([\d.,]+)/,
-                costo_total: /Costo Total[:\s]+([\d.,]+)/,
-                iva_pagado: /IVA Pagado[:\s]+([\d.,]+)/,
-                precio_unitario: /Precio Unitario[:\s]+([\d.,]+)/,
-                precio_total: /Precio Total[:\s]+([\d.,]+)/,
-                iva_cobrado: /IVA Cobrado[:\s]+([\d.,]+)/,
-                total_facturado: /Total Facturado[:\s]+([\d.,]+)/,
+                cantidad: /CANTIDAD\s+(\d+,\d+)/,
+                costo_unitario: /PRECIO\s+UNITARIO\s+([\d.,]+)/,
+                costo_total: /PRECIO\s+TOTAL\s+([\d.,]+)/,
+                iva_pagado: /IVA\s+Pagado[:\s]+([\d.,]+)/,
+                precio_unitario: /Precio\s+Unitario[:\s]+([\d.,]+)/,
+                precio_total: /Precio\s+Total[:\s]+([\d.,]+)/,
+                iva_cobrado: /IVA\s+Cobrado[:\s]+([\d.,]+)/,
+                total_facturado: /VALOR\s+TOTAL\s+([\d.,]+)/,
                 utilidad: /Utilidad[:\s]+([\d.,]+)/,
                 credito: /Crédito[:\s]+(.+)/,
-                condiciones_credito: /Condiciones Crédito[:\s]+(.+)/,
+                condiciones_credito: /Condiciones\s+Crédito[:\s]+(.+)/,
                 pendientes: /Pendientes[:\s]+(.+)/,
                 perdido: /Perdido[:\s]+(.+)/,
             };
@@ -219,4 +219,4 @@
         });
     </script>
 </body>
-</html> 
+</html>
