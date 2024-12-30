@@ -24,7 +24,6 @@
         }
         main {
             padding: 20px;
-            display: none;
         }
         form {
             margin: 20px 0;
@@ -63,27 +62,12 @@
         #search-bar {
             margin-bottom: 20px;
         }
-        #login-section {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-        }
     </style>
 </head>
 <body>
     <header>
         <h1>Sistema de Facturación</h1>
     </header>
-    <div id="login-section">
-        <h2>Acceso al Sistema</h2>
-        <form id="login-form">
-            <input type="password" id="password" placeholder="Contraseña" required>
-            <button type="submit">Ingresar</button>
-        </form>
-        <p id="login-error" style="color: red; display: none;">Contraseña incorrecta</p>
-    </div>
     <main>
         <section id="upload-section">
             <h2>Cargar Factura PDF</h2>
@@ -135,27 +119,8 @@
             </table>
         </section>
     </main>
-    <footer>
-        <p>Sistema de Facturación - 2024</p>
-    </footer>
     <script>
-        const PASSWORD = "mcm352"; // Contraseña para acceder
-        let invoices = JSON.parse(localStorage.getItem("invoices")) || []; // Recuperar facturas guardadas
-
-        document.getElementById("login-form").addEventListener("submit", (e) => {
-            e.preventDefault();
-            const password = document.getElementById("password").value;
-            if (password === PASSWORD) {
-                document.getElementById("login-section").style.display = "none";
-                document.querySelector("main").style.display = "block";
-            } else {
-                document.getElementById("login-error").style.display = "block";
-            }
-        });
-
-        document.addEventListener("DOMContentLoaded", () => {
-            populateTable(invoices);
-        });
+        let invoices = JSON.parse(localStorage.getItem("invoices")) || [];
 
         document.getElementById('upload-form').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -171,7 +136,7 @@
                     const text = await extractTextFromPDF(pdf);
                     const newInvoice = processText(text);
                     invoices.push(newInvoice);
-                    localStorage.setItem("invoices", JSON.stringify(invoices)); // Guardar en Local Storage
+                    localStorage.setItem("invoices", JSON.stringify(invoices));
                     populateTable(invoices);
                 };
                 reader.readAsArrayBuffer(file);
@@ -231,50 +196,28 @@
 
         function populateTable(invoices) {
             const tableBody = document.getElementById('invoice-table').querySelector('tbody');
-            tableBody.innerHTML = ''; // Limpiar datos previos
+            tableBody.innerHTML = '';
 
             invoices.forEach((invoice, index) => {
                 const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${invoice.factura}</td>
-                    <td>${invoice.dia}</td>
-                    <td>${invoice.mes}</td>
-                    <td>${invoice.ano}</td>
-                    <td>${invoice.fecha_entrega}</td>
-                    <td>${invoice.cliente}</td>
-                    <td>${invoice.ruc}</td>
-                    <td>${invoice.provincia}</td>
-                    <td>${invoice.ciudad}</td>
-                    <td>${invoice.lista_precio}</td>
-                    <td>${invoice.canal}</td>
-                    <td>${invoice.sub_canal}</td>
-                    <td>${invoice.vendedor}</td>
-                    <td>${invoice.cuentas}</td>
-                    <td>${invoice.codigo}</td>
-                    <td>${invoice.modelo}</td>
-                    <td>${invoice.proveedor}</td>
-                    <td>${invoice.cantidad}</td>
-                    <td>${invoice.costo_unitario}</td>
-                    <td>${invoice.costo_total}</td>
-                    <td>${invoice.iva_pagado}</td>
-                    <td>${invoice.precio_unitario}</td>
-                    <td>${invoice.precio_total}</td>
-                    <td>${invoice.iva_cobrado}</td>
-                    <td>${invoice.total_a_facturar}</td>
-                    <td>${invoice.utilidad}</td>
-                    <td>${invoice.credito}</td>
-                    <td>${invoice.condiciones_credito}</td>
-                    <td>${invoice.pendientes}</td>
-                    <td>${invoice.perdido}</td>
-                    <td><button onclick="deleteRow(${index})">Borrar</button></td>
-                `;
+                Object.values(invoice).forEach(value => {
+                    const cell = document.createElement('td');
+                    cell.textContent = value;
+                    row.appendChild(cell);
+                });
+                const actionCell = document.createElement('td');
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = "Borrar";
+                deleteButton.onclick = () => deleteRow(index);
+                actionCell.appendChild(deleteButton);
+                row.appendChild(actionCell);
                 tableBody.appendChild(row);
             });
         }
 
         function deleteRow(index) {
-            invoices.splice(index, 1); // Eliminar factura
-            localStorage.setItem("invoices", JSON.stringify(invoices)); // Actualizar Local Storage
+            invoices.splice(index, 1);
+            localStorage.setItem("invoices", JSON.stringify(invoices));
             populateTable(invoices);
         }
 
@@ -289,6 +232,10 @@
                 );
                 row.style.display = matches ? '' : 'none';
             });
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            populateTable(invoices);
         });
     </script>
 </body>
