@@ -28,7 +28,7 @@
         form {
             margin: 20px 0;
         }
-        input, button {
+        textarea, input, button {
             margin: 5px 0;
             padding: 10px;
             width: 100%;
@@ -91,11 +91,13 @@
     </div>
     <main>
         <section>
-            <h2>Cargar Factura XML</h2>
+            <h2>Cargar Facturas</h2>
             <form id="upload-form">
                 <input type="file" id="file-upload" accept=".xml">
-                <button type="submit">Subir Factura</button>
+                <button type="submit">Subir Factura XML</button>
             </form>
+            <textarea id="text-input" rows="10" placeholder="Pega aquí las facturas en texto"></textarea>
+            <button id="process-text">Procesar Texto</button>
             <div>
                 <input type="text" id="search-bar" placeholder="Buscar por cliente, factura, etc.">
                 <span class="factura-count" id="factura-count">Facturas leídas: 0</span>
@@ -105,32 +107,10 @@
                     <tr>
                         <th>Factura</th>
                         <th>Fecha</th>
-                        <th>Fecha Entrega</th>
                         <th>Cliente</th>
                         <th>RUC</th>
-                        <th>Provincia</th>
-                        <th>Ciudad</th>
-                        <th>Lista Precio</th>
-                        <th>Canal</th>
-                        <th>Sub Canal</th>
-                        <th>Vendedor</th>
-                        <th>Cuentas</th>
-                        <th>Código</th>
-                        <th>Modelo</th>
-                        <th>Proveedor</th>
-                        <th>Cantidad</th>
-                        <th>Costo Unitario</th>
-                        <th>Costo Total</th>
-                        <th>IVA Pagado</th>
-                        <th>Precio Unitario</th>
-                        <th>Precio Total</th>
-                        <th>IVA Cobrado</th>
-                        <th>Total Facturado</th>
-                        <th>Utilidad</th>
-                        <th>Crédito</th>
-                        <th>Condiciones Crédito</th>
-                        <th>Pendientes</th>
-                        <th>Perdido</th>
+                        <th>Descripción</th>
+                        <th>Monto</th>
                         <th>Eliminar</th>
                     </tr>
                 </thead>
@@ -159,66 +139,38 @@
             }
         });
 
-        document.getElementById("upload-form").addEventListener("submit", async (e) => {
-            e.preventDefault();
-            const file = document.getElementById("file-upload").files[0];
-
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function () {
-                    const parser = new DOMParser();
-                    const xml = parser.parseFromString(this.result, "application/xml");
-                    const cdata = xml.querySelector("comprobante")?.textContent.trim();
-
-                    if (cdata) {
-                        const cdataXML = new DOMParser().parseFromString(cdata, "application/xml");
-                        const invoice = processXMLData(cdataXML);
-                        invoices.push(...invoice);
-                        localStorage.setItem("invoices", JSON.stringify(invoices));
-                        populateTable();
-                        updateFacturaCount();
-                    } else {
-                        alert("No se encontró la información esperada en el archivo XML.");
-                    }
-                };
-                reader.readAsText(file);
+        document.getElementById("process-text").addEventListener("click", () => {
+            const text = document.getElementById("text-input").value.trim();
+            if (!text) {
+                alert("Por favor, pega el texto de las facturas.");
+                return;
             }
+
+            const rows = text.split(/\n/).map(line => line.trim()).filter(line => line);
+            rows.forEach(row => {
+                const columns = row.split(/\s+/); // Ajustar según la estructura exacta
+                if (columns.length >= 5) {
+                    invoices.push({
+                        factura: columns[0],
+                        fecha: columns[1],
+                        cliente: columns[2],
+                        ruc: columns[3],
+                        descripcion: columns.slice(4, -1).join(" "), // Combina descripción si es texto largo
+                        monto: columns[columns.length - 1]
+                    });
+                }
+            });
+
+            invoices.sort((a, b) => new Date(b.fecha) - new Date(a.fecha)); // Ordenar de más reciente a más antiguo
+            localStorage.setItem("invoices", JSON.stringify(invoices));
+            populateTable();
+            updateFacturaCount();
         });
 
-        function processXMLData(xml) {
-            const getTagValue = (path) => xml.querySelector(path)?.textContent.trim() || "No encontrado";
-            const models = Array.from(xml.querySelectorAll("detalles > detalle"));
-            return models.map(model => ({
-                factura: getTagValue("infoTributaria > secuencial"),
-                fecha: getTagValue("infoFactura > fechaEmision"),
-                fecha_entrega: getTagValue("infoFactura > fechaEntrega"),
-                cliente: getTagValue("infoFactura > razonSocialComprador"),
-                ruc: getTagValue("infoFactura > identificacionComprador"),
-                provincia: getTagValue("infoFactura > direccionComprador")?.split("/")[0] || "No encontrado",
-                ciudad: getTagValue("infoFactura > direccionComprador")?.split("/")[1] || "No encontrado",
-                lista_precio: getTagValue("infoFactura > listaPrecio"),
-                canal: getTagValue("infoFactura > canal"),
-                sub_canal: getTagValue("infoFactura > subCanal"),
-                vendedor: getTagValue("infoFactura > vendedor"),
-                cuentas: getTagValue("infoFactura > cuentas"),
-                codigo: model.querySelector("codigoPrincipal")?.textContent.trim() || "No encontrado",
-                modelo: model.querySelector("descripcion")?.textContent.trim() || "No encontrado",
-                proveedor: getTagValue("infoFactura > proveedor"),
-                cantidad: model.querySelector("cantidad")?.textContent.trim() || "No encontrado",
-                costo_unitario: model.querySelector("precioUnitario")?.textContent.trim() || "No encontrado",
-                costo_total: model.querySelector("precioTotalSinImpuesto")?.textContent.trim() || "No encontrado",
-                iva_pagado: getTagValue("infoFactura > totalConImpuestos > totalImpuesto > valor"),
-                precio_unitario: model.querySelector("precioUnitario")?.textContent.trim() || "No encontrado",
-                precio_total: model.querySelector("precioTotalSinImpuesto")?.textContent.trim() || "No encontrado",
-                iva_cobrado: getTagValue("infoFactura > totalConImpuestos > totalImpuesto > valor"),
-                total_facturado: getTagValue("infoFactura > importeTotal"),
-                utilidad: getTagValue("infoFactura > utilidad"),
-                credito: getTagValue("infoFactura > credito"),
-                condiciones_credito: getTagValue("infoFactura > condicionesCredito"),
-                pendientes: getTagValue("infoFactura > pendientes"),
-                perdido: getTagValue("infoFactura > perdido"),
-            }));
-        }
+        document.getElementById("upload-form").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            alert("Procesamiento de XML aún no implementado para texto masivo. Usa el campo de texto.");
+        });
 
         function populateTable() {
             const tbody = document.getElementById("invoice-table");
@@ -226,7 +178,14 @@
 
             invoices.forEach((invoice, index) => {
                 const row = document.createElement("tr");
-                row.innerHTML = Object.values(invoice).map((value) => `<td>${value}</td>`).join("");
+                row.innerHTML = `
+                    <td>${invoice.factura}</td>
+                    <td>${invoice.fecha}</td>
+                    <td>${invoice.cliente}</td>
+                    <td>${invoice.ruc}</td>
+                    <td>${invoice.descripcion}</td>
+                    <td>${invoice.monto}</td>
+                `;
                 const deleteBtn = document.createElement("button");
                 deleteBtn.textContent = "Eliminar";
                 deleteBtn.classList.add("delete-btn");
