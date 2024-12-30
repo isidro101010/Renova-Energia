@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Facturación Automático</title>
+    <title>Sistema de Facturación Completo</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
     <style>
         body {
@@ -75,7 +75,7 @@
 </head>
 <body>
     <header>
-        <h1>Sistema de Facturación Automático</h1>
+        <h1>Sistema de Facturación Completo</h1>
     </header>
     <main>
         <h2>Cargar Factura PDF</h2>
@@ -143,15 +143,27 @@
                 ruc: /RUC[:\s]+(\d+)/,
                 provincia: /Provincia[:\s]+([^\n]+)/,
                 ciudad: /Ciudad[:\s]+([^\n]+)/,
+                lista_precio: /Lista Precio[:\s]+([^\n]+)/,
+                canal: /Canal[:\s]+([^\n]+)/,
+                sub_canal: /Sub Canal[:\s]+([^\n]+)/,
                 vendedor: /Vendedor[:\s]+([^\n]+)/,
+                cuentas: /Cuentas[:\s]+([^\n]+)/,
                 codigo: /Código[:\s]+([^\n]+)/,
                 modelo: /Modelo[:\s]+([^\n]+)/,
+                proveedor: /Proveedor[:\s]+([^\n]+)/,
                 cantidad: /Cantidad[:\s]+([\d.,]+)/,
                 costo_unitario: /Costo Unitario[:\s]+([\d.,]+)/,
                 costo_total: /Costo Total[:\s]+([\d.,]+)/,
                 iva_pagado: /IVA[:\s]+([\d.,]+)/,
+                precio_unitario: /Precio Unitario[:\s]+([\d.,]+)/,
                 precio_total: /Precio Total[:\s]+([\d.,]+)/,
+                iva_cobrado: /IVA Cobrado[:\s]+([\d.,]+)/,
                 total_a_facturar: /Total[:\s]+([\d.,]+)/,
+                utilidad: /Utilidad[:\s]+([\d.,]+)/,
+                credito: /Crédito[:\s]+([^\n]+)/,
+                condiciones_credito: /Condiciones de Crédito[:\s]+([^\n]+)/,
+                pendientes: /Pendientes[:\s]+([^\n]+)/,
+                perdido: /Perdido[:\s]+([^\n]+)/
             };
 
             const results = {};
