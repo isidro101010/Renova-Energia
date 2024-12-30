@@ -116,6 +116,9 @@
             </table>
         </section>
     </main>
+    <footer>
+        <p>Sistema de Facturación - 2024</p>
+    </footer>
     <script>
         let invoices = JSON.parse(localStorage.getItem("invoices")) || [];
 
@@ -153,44 +156,68 @@
         function processText(text) {
             const patterns = {
                 factura: /Factura Nro[:\s]+(\d+-\d+-\d+)/,
-                dia: /(\d{2})\/(\d{2})\/(\d{4})/,
+                dia: /Fecha[:\s]+(\d{2})\/(\d{2})\/(\d{4})/,
+                mes: /Fecha[:\s]+(\d{2})\/(\d{2})\/(\d{4})/,
+                ano: /Fecha[:\s]+(\d{2})\/(\d{2})\/(\d{4})/,
+                fechaEntrega: /Fecha de Entrega[:\s]+([\d\/]+)/,
                 cliente: /Cliente[:\s]+(.+)/,
                 ruc: /RUC[:\s]+(\d+)/,
-                fechaEntrega: /Fecha de Entrega[:\s]+([\d\/]+)/,
-                totalFacturado: /VALOR TOTAL[:\s]+([\d.,]+)/,
+                provincia: /Provincia[:\s]+(.+)/,
+                ciudad: /Ciudad[:\s]+(.+)/,
+                lista_precio: /Lista Precio[:\s]+(.+)/,
+                canal: /Canal[:\s]+(.+)/,
+                sub_canal: /Sub Canal[:\s]+(.+)/,
+                vendedor: /Vendedor[:\s]+(.+)/,
+                cuentas: /Cuentas[:\s]+(.+)/,
+                codigo: /Código[:\s]+(.+)/,
+                modelo: /Modelo[:\s]+(.+)/,
+                proveedor: /Proveedor[:\s]+(.+)/,
+                cantidad: /Cantidad[:\s]+(\d+)/,
+                costo_unitario: /Costo Unitario[:\s]+([\d.,]+)/,
+                costo_total: /Costo Total[:\s]+([\d.,]+)/,
+                iva_pagado: /IVA Pagado[:\s]+([\d.,]+)/,
+                precio_unitario: /Precio Unitario[:\s]+([\d.,]+)/,
+                precio_total: /Precio Total[:\s]+([\d.,]+)/,
+                iva_cobrado: /IVA Cobrado[:\s]+([\d.,]+)/,
+                total_a_facturar: /Total a Facturar[:\s]+([\d.,]+)/,
+                utilidad: /Utilidad[:\s]+([\d.,]+)/,
+                credito: /Crédito[:\s]+(.+)/,
+                condiciones_credito: /Condiciones de Crédito[:\s]+(.+)/,
+                pendientes: /Pendientes[:\s]+(.+)/,
+                perdido: /Perdido[:\s]+(.+)/,
             };
 
             return {
                 factura: text.match(patterns.factura)?.[1] || "No encontrado",
                 dia: text.match(patterns.dia)?.[1] || "No encontrado",
-                mes: text.match(patterns.dia)?.[2] || "No encontrado",
-                ano: text.match(patterns.dia)?.[3] || "No encontrado",
+                mes: text.match(patterns.mes)?.[2] || "No encontrado",
+                ano: text.match(patterns.ano)?.[3] || "No encontrado",
                 fecha_entrega: text.match(patterns.fechaEntrega)?.[1] || "No encontrado",
                 cliente: text.match(patterns.cliente)?.[1] || "No encontrado",
                 ruc: text.match(patterns.ruc)?.[1] || "No encontrado",
-                provincia: "No encontrado",
-                ciudad: "No encontrado",
-                lista_precio: "No encontrado",
-                canal: "No encontrado",
-                sub_canal: "No encontrado",
-                vendedor: "No encontrado",
-                cuentas: "No encontrado",
-                codigo: "No encontrado",
-                modelo: "No encontrado",
-                proveedor: "No encontrado",
-                cantidad: "No encontrado",
-                costo_unitario: "No encontrado",
-                costo_total: text.match(patterns.totalFacturado)?.[1] || "No encontrado",
-                iva_pagado: "No encontrado",
-                precio_unitario: "No encontrado",
-                precio_total: "No encontrado",
-                iva_cobrado: "No encontrado",
-                total_a_facturar: text.match(patterns.totalFacturado)?.[1] || "No encontrado",
-                utilidad: "No encontrado",
-                credito: "No encontrado",
-                condiciones_credito: "No encontrado",
-                pendientes: "No encontrado",
-                perdido: "No encontrado",
+                provincia: text.match(patterns.provincia)?.[1] || "No encontrado",
+                ciudad: text.match(patterns.ciudad)?.[1] || "No encontrado",
+                lista_precio: text.match(patterns.lista_precio)?.[1] || "No encontrado",
+                canal: text.match(patterns.canal)?.[1] || "No encontrado",
+                sub_canal: text.match(patterns.sub_canal)?.[1] || "No encontrado",
+                vendedor: text.match(patterns.vendedor)?.[1] || "No encontrado",
+                cuentas: text.match(patterns.cuentas)?.[1] || "No encontrado",
+                codigo: text.match(patterns.codigo)?.[1] || "No encontrado",
+                modelo: text.match(patterns.modelo)?.[1] || "No encontrado",
+                proveedor: text.match(patterns.proveedor)?.[1] || "No encontrado",
+                cantidad: text.match(patterns.cantidad)?.[1] || "No encontrado",
+                costo_unitario: text.match(patterns.costo_unitario)?.[1] || "No encontrado",
+                costo_total: text.match(patterns.costo_total)?.[1] || "No encontrado",
+                iva_pagado: text.match(patterns.iva_pagado)?.[1] || "No encontrado",
+                precio_unitario: text.match(patterns.precio_unitario)?.[1] || "No encontrado",
+                precio_total: text.match(patterns.precio_total)?.[1] || "No encontrado",
+                iva_cobrado: text.match(patterns.iva_cobrado)?.[1] || "No encontrado",
+                total_a_facturar: text.match(patterns.total_a_facturar)?.[1] || "No encontrado",
+                utilidad: text.match(patterns.utilidad)?.[1] || "No encontrado",
+                credito: text.match(patterns.credito)?.[1] || "No encontrado",
+                condiciones_credito: text.match(patterns.condiciones_credito)?.[1] || "No encontrado",
+                pendientes: text.match(patterns.pendientes)?.[1] || "No encontrado",
+                perdido: text.match(patterns.perdido)?.[1] || "No encontrado",
             };
         }
 
@@ -200,17 +227,39 @@
 
             invoices.forEach((invoice, index) => {
                 const row = document.createElement('tr');
-                Object.values(invoice).forEach(value => {
-                    const cell = document.createElement('td');
-                    cell.textContent = value;
-                    row.appendChild(cell);
-                });
-                const actionCell = document.createElement('td');
-                const deleteButton = document.createElement('button');
-                deleteButton.textContent = "Borrar";
-                deleteButton.onclick = () => deleteRow(index);
-                actionCell.appendChild(deleteButton);
-                row.appendChild(actionCell);
+                row.innerHTML = `
+                    <td>${invoice.factura}</td>
+                    <td>${invoice.dia}</td>
+                    <td>${invoice.mes}</td>
+                    <td>${invoice.ano}</td>
+                    <td>${invoice.fecha_entrega}</td>
+                    <td>${invoice.cliente}</td>
+                    <td>${invoice.ruc}</td>
+                    <td>${invoice.provincia}</td>
+                    <td>${invoice.ciudad}</td>
+                    <td>${invoice.lista_precio}</td>
+                    <td>${invoice.canal}</td>
+                    <td>${invoice.sub_canal}</td>
+                    <td>${invoice.vendedor}</td>
+                    <td>${invoice.cuentas}</td>
+                    <td>${invoice.codigo}</td>
+                    <td>${invoice.modelo}</td>
+                    <td>${invoice.proveedor}</td>
+                    <td>${invoice.cantidad}</td>
+                    <td>${invoice.costo_unitario}</td>
+                    <td>${invoice.costo_total}</td>
+                    <td>${invoice.iva_pagado}</td>
+                    <td>${invoice.precio_unitario}</td>
+                    <td>${invoice.precio_total}</td>
+                    <td>${invoice.iva_cobrado}</td>
+                    <td>${invoice.total_a_facturar}</td>
+                    <td>${invoice.utilidad}</td>
+                    <td>${invoice.credito}</td>
+                    <td>${invoice.condiciones_credito}</td>
+                    <td>${invoice.pendientes}</td>
+                    <td>${invoice.perdido}</td>
+                    <td><button onclick="deleteRow(${index})">Borrar</button></td>
+                `;
                 tableBody.appendChild(row);
             });
         }
@@ -223,6 +272,19 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             populateTable(invoices);
+        });
+
+        document.getElementById('search-bar').addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            const rows = document.querySelectorAll('#invoice-table tbody tr');
+
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                const matches = Array.from(cells).some(cell =>
+                    cell.textContent.toLowerCase().includes(query)
+                );
+                row.style.display = matches ? '' : 'none';
+            });
         });
     </script>
 </body>
