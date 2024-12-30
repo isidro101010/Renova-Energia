@@ -23,6 +23,7 @@
         }
         main {
             padding: 20px;
+            display: none;
         }
         form {
             margin: 20px 0;
@@ -76,6 +77,14 @@
     <header>
         <h1>Sistema de Facturación Inteligente</h1>
     </header>
+    <div id="login-section">
+        <h2>Acceso al Sistema</h2>
+        <form id="login-form">
+            <input type="password" id="password" placeholder="Contraseña" required>
+            <button type="submit">Ingresar</button>
+        </form>
+        <p id="login-error" style="color: red; display: none;">Contraseña incorrecta</p>
+    </div>
     <main>
         <section>
             <h2>Cargar Factura XML</h2>
@@ -128,7 +137,19 @@
         <p>Sistema de Facturación Inteligente - 2024</p>
     </footer>
     <script>
+        const PASSWORD = "mcm352";
         let invoices = JSON.parse(localStorage.getItem("invoices")) || [];
+
+        document.getElementById("login-form").addEventListener("submit", (e) => {
+            e.preventDefault();
+            const password = document.getElementById("password").value;
+            if (password === PASSWORD) {
+                document.getElementById("login-section").style.display = "none";
+                document.querySelector("main").style.display = "block";
+            } else {
+                document.getElementById("login-error").style.display = "block";
+            }
+        });
 
         document.getElementById("upload-form").addEventListener("submit", async (e) => {
             e.preventDefault();
@@ -144,7 +165,7 @@
                     if (cdata) {
                         const cdataXML = new DOMParser().parseFromString(cdata, "application/xml");
                         const invoice = processXMLData(cdataXML);
-                        invoices.push(invoice);
+                        invoices.push(...invoice); // Add all processed invoices
                         localStorage.setItem("invoices", JSON.stringify(invoices));
                         populateTable();
                     } else {
@@ -157,8 +178,8 @@
 
         function processXMLData(xml) {
             const getTagValue = (path) => xml.querySelector(path)?.textContent.trim() || "No encontrado";
-
-            return {
+            const models = Array.from(xml.querySelectorAll("detalles > detalle"));
+            return models.map(model => ({
                 factura: getTagValue("infoTributaria > secuencial"),
                 fecha: getTagValue("infoFactura > fechaEmision"),
                 fecha_entrega: getTagValue("infoFactura > fechaEntrega"),
@@ -171,15 +192,15 @@
                 sub_canal: getTagValue("infoFactura > subCanal"),
                 vendedor: getTagValue("infoFactura > vendedor"),
                 cuentas: getTagValue("infoFactura > cuentas"),
-                codigo: getTagValue("detalles > detalle > codigoPrincipal"),
-                modelo: getTagValue("detalles > detalle > descripcion"),
+                codigo: model.querySelector("codigoPrincipal")?.textContent.trim() || "No encontrado",
+                modelo: model.querySelector("descripcion")?.textContent.trim() || "No encontrado",
                 proveedor: getTagValue("infoFactura > proveedor"),
-                cantidad: getTagValue("detalles > detalle > cantidad"),
-                costo_unitario: getTagValue("detalles > detalle > precioUnitario"),
-                costo_total: getTagValue("detalles > detalle > precioTotalSinImpuesto"),
+                cantidad: model.querySelector("cantidad")?.textContent.trim() || "No encontrado",
+                costo_unitario: model.querySelector("precioUnitario")?.textContent.trim() || "No encontrado",
+                costo_total: model.querySelector("precioTotalSinImpuesto")?.textContent.trim() || "No encontrado",
                 iva_pagado: getTagValue("infoFactura > totalConImpuestos > totalImpuesto > valor"),
-                precio_unitario: getTagValue("detalles > detalle > precioUnitario"),
-                precio_total: getTagValue("detalles > detalle > precioTotalSinImpuesto"),
+                precio_unitario: model.querySelector("precioUnitario")?.textContent.trim() || "No encontrado",
+                precio_total: model.querySelector("precioTotalSinImpuesto")?.textContent.trim() || "No encontrado",
                 iva_cobrado: getTagValue("infoFactura > totalConImpuestos > totalImpuesto > valor"),
                 total_facturado: getTagValue("infoFactura > importeTotal"),
                 utilidad: getTagValue("infoFactura > utilidad"),
@@ -187,14 +208,14 @@
                 condiciones_credito: getTagValue("infoFactura > condicionesCredito"),
                 pendientes: getTagValue("infoFactura > pendientes"),
                 perdido: getTagValue("infoFactura > perdido"),
-            };
+            }));
         }
 
         function populateTable() {
             const tbody = document.getElementById("invoice-table");
             tbody.innerHTML = "";
 
-            invoices.forEach((invoice, index) => {
+            invoices.sort((a, b) => a.modelo.localeCompare(b.modelo)).forEach((invoice, index) => {
                 const row = document.createElement("tr");
                 row.innerHTML = Object.values(invoice).map((value) => `<td>${value}</td>`).join("");
                 const deleteBtn = document.createElement("button");
