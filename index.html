@@ -75,6 +75,19 @@
             font-weight: bold;
             margin: 10px 0;
         }
+        .progress-bar-container {
+            width: 100%;
+            background-color: #ddd;
+            height: 20px;
+            margin: 10px 0;
+            display: none;
+        }
+        .progress-bar {
+            height: 100%;
+            background-color: #4caf50;
+            width: 0%;
+            transition: width 0.5s;
+        }
     </style>
 </head>
 <body>
@@ -98,6 +111,9 @@
             </form>
             <textarea id="text-input" rows="10" placeholder="Pega aquí las facturas en texto"></textarea>
             <button id="process-text">Procesar Texto</button>
+            <div class="progress-bar-container" id="progress-bar-container">
+                <div class="progress-bar" id="progress-bar"></div>
+            </div>
             <div>
                 <input type="text" id="search-bar" placeholder="Buscar por cliente, factura, etc.">
                 <span class="factura-count" id="factura-count">Facturas leídas: 0</span>
@@ -107,15 +123,37 @@
                     <tr>
                         <th>Factura</th>
                         <th>Fecha</th>
+                        <th>Fecha Entrega</th>
                         <th>Cliente</th>
                         <th>RUC</th>
-                        <th>Descripción</th>
-                        <th>Monto</th>
+                        <th>Provincia</th>
+                        <th>Ciudad</th>
+                        <th>Lista Precio</th>
+                        <th>Canal</th>
+                        <th>Sub Canal</th>
+                        <th>Vendedor</th>
+                        <th>Cuentas</th>
+                        <th>Código</th>
+                        <th>Modelo</th>
+                        <th>Proveedor</th>
+                        <th>Cantidad</th>
+                        <th>Costo Unitario</th>
+                        <th>Costo Total</th>
+                        <th>IVA Pagado</th>
+                        <th>Precio Unitario</th>
+                        <th>Precio Total</th>
+                        <th>IVA Cobrado</th>
+                        <th>Total Facturado</th>
+                        <th>Utilidad</th>
+                        <th>Crédito</th>
+                        <th>Condiciones Crédito</th>
+                        <th>Pendientes</th>
+                        <th>Perdido</th>
                         <th>Eliminar</th>
                     </tr>
                 </thead>
                 <tbody id="invoice-table">
-                    <!-- Datos serán añadidos dinámicamente -->
+                    <!-- Filas se agregarán dinámicamente -->
                 </tbody>
             </table>
         </section>
@@ -147,29 +185,59 @@
             }
 
             const rows = text.split(/\n/).map(line => line.trim()).filter(line => line);
-            rows.forEach(row => {
-                const columns = row.split(/\s+/); // Ajustar según la estructura exacta
-                if (columns.length >= 5) {
-                    invoices.push({
-                        factura: columns[0],
-                        fecha: columns[1],
-                        cliente: columns[2],
-                        ruc: columns[3],
-                        descripcion: columns.slice(4, -1).join(" "), // Combina descripción si es texto largo
-                        monto: columns[columns.length - 1]
-                    });
-                }
+            const progressBar = document.getElementById("progress-bar");
+            const progressBarContainer = document.getElementById("progress-bar-container");
+            progressBarContainer.style.display = "block";
+
+            rows.forEach((row, index) => {
+                setTimeout(() => {
+                    const columns = row.split(/\s+/); // Ajustar según la estructura exacta
+                    if (columns.length >= 29) { // Adaptar al número de clasificaciones
+                        invoices.push({
+                            factura: columns[0],
+                            fecha: columns[1],
+                            fecha_entrega: columns[2],
+                            cliente: columns[3],
+                            ruc: columns[4],
+                            provincia: columns[5],
+                            ciudad: columns[6],
+                            lista_precio: columns[7],
+                            canal: columns[8],
+                            sub_canal: columns[9],
+                            vendedor: columns[10],
+                            cuentas: columns[11],
+                            codigo: columns[12],
+                            modelo: columns[13],
+                            proveedor: columns[14],
+                            cantidad: columns[15],
+                            costo_unitario: columns[16],
+                            costo_total: columns[17],
+                            iva_pagado: columns[18],
+                            precio_unitario: columns[19],
+                            precio_total: columns[20],
+                            iva_cobrado: columns[21],
+                            total_facturado: columns[22],
+                            utilidad: columns[23],
+                            credito: columns[24],
+                            condiciones_credito: columns[25],
+                            pendientes: columns[26],
+                            perdido: columns[27]
+                        });
+                    }
+
+                    // Actualizar barra de progreso
+                    progressBar.style.width = `${((index + 1) / rows.length) * 100}%`;
+
+                    // Finalizar procesamiento
+                    if (index === rows.length - 1) {
+                        progressBarContainer.style.display = "none";
+                        invoices.sort((a, b) => new Date(b.fecha) - new Date(a.fecha)); // Ordenar por fecha
+                        localStorage.setItem("invoices", JSON.stringify(invoices));
+                        populateTable();
+                        updateFacturaCount();
+                    }
+                }, index * 50); // Procesar con retraso para simular progresión
             });
-
-            invoices.sort((a, b) => new Date(b.fecha) - new Date(a.fecha)); // Ordenar de más reciente a más antiguo
-            localStorage.setItem("invoices", JSON.stringify(invoices));
-            populateTable();
-            updateFacturaCount();
-        });
-
-        document.getElementById("upload-form").addEventListener("submit", async (e) => {
-            e.preventDefault();
-            alert("Procesamiento de XML aún no implementado para texto masivo. Usa el campo de texto.");
         });
 
         function populateTable() {
@@ -178,14 +246,7 @@
 
             invoices.forEach((invoice, index) => {
                 const row = document.createElement("tr");
-                row.innerHTML = `
-                    <td>${invoice.factura}</td>
-                    <td>${invoice.fecha}</td>
-                    <td>${invoice.cliente}</td>
-                    <td>${invoice.ruc}</td>
-                    <td>${invoice.descripcion}</td>
-                    <td>${invoice.monto}</td>
-                `;
+                row.innerHTML = Object.values(invoice).map(value => `<td>${value}</td>`).join("");
                 const deleteBtn = document.createElement("button");
                 deleteBtn.textContent = "Eliminar";
                 deleteBtn.classList.add("delete-btn");
@@ -212,16 +273,4 @@
         });
 
         document.getElementById("search-bar").addEventListener("input", (e) => {
-            const query = e.target.value.toLowerCase();
-            const rows = document.querySelectorAll("#invoice-table tr");
-
-            rows.forEach((row) => {
-                const matches = Array.from(row.cells).some((cell) =>
-                    cell.textContent.toLowerCase().includes(query)
-                );
-                row.style.display = matches ? "" : "none";
-            });
-        });
-    </script>
-</body>
-</html>
+            const query = e.target.value
