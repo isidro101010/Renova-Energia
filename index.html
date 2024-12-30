@@ -59,9 +59,6 @@
             background-color: #005f99;
             color: white;
         }
-        #search-bar {
-            margin-bottom: 20px;
-        }
     </style>
 </head>
 <body>
@@ -154,20 +151,23 @@
         }
 
         function processText(text) {
-            const factura = text.match(/Factura Nro[:\s]+(\d+-\d+-\d+)/)?.[1] || "No encontrado";
-            const cliente = text.match(/Cliente[:\s]+(.+)/)?.[1] || "No encontrado";
-            const ruc = text.match(/RUC[:\s]+(\d+)/)?.[1] || "No encontrado";
-            const fechaEntrega = text.match(/Fecha de Entrega[:\s]+([\d\/]+)/)?.[1] || "No encontrado";
-            const totalFacturado = text.match(/VALOR TOTAL[:\s]+([\d.,]+)/)?.[1]?.replace(",", ".") || "No encontrado";
+            const patterns = {
+                factura: /Factura Nro[:\s]+(\d+-\d+-\d+)/,
+                dia: /(\d{2})\/(\d{2})\/(\d{4})/,
+                cliente: /Cliente[:\s]+(.+)/,
+                ruc: /RUC[:\s]+(\d+)/,
+                fechaEntrega: /Fecha de Entrega[:\s]+([\d\/]+)/,
+                totalFacturado: /VALOR TOTAL[:\s]+([\d.,]+)/,
+            };
 
             return {
-                factura,
-                dia: fechaEntrega.split("/")[0] || "No encontrado",
-                mes: fechaEntrega.split("/")[1] || "No encontrado",
-                ano: fechaEntrega.split("/")[2] || "No encontrado",
-                fecha_entrega: fechaEntrega,
-                cliente,
-                ruc,
+                factura: text.match(patterns.factura)?.[1] || "No encontrado",
+                dia: text.match(patterns.dia)?.[1] || "No encontrado",
+                mes: text.match(patterns.dia)?.[2] || "No encontrado",
+                ano: text.match(patterns.dia)?.[3] || "No encontrado",
+                fecha_entrega: text.match(patterns.fechaEntrega)?.[1] || "No encontrado",
+                cliente: text.match(patterns.cliente)?.[1] || "No encontrado",
+                ruc: text.match(patterns.ruc)?.[1] || "No encontrado",
                 provincia: "No encontrado",
                 ciudad: "No encontrado",
                 lista_precio: "No encontrado",
@@ -180,12 +180,12 @@
                 proveedor: "No encontrado",
                 cantidad: "No encontrado",
                 costo_unitario: "No encontrado",
-                costo_total: totalFacturado,
+                costo_total: text.match(patterns.totalFacturado)?.[1] || "No encontrado",
                 iva_pagado: "No encontrado",
                 precio_unitario: "No encontrado",
                 precio_total: "No encontrado",
                 iva_cobrado: "No encontrado",
-                total_a_facturar: totalFacturado,
+                total_a_facturar: text.match(patterns.totalFacturado)?.[1] || "No encontrado",
                 utilidad: "No encontrado",
                 credito: "No encontrado",
                 condiciones_credito: "No encontrado",
@@ -220,19 +220,6 @@
             localStorage.setItem("invoices", JSON.stringify(invoices));
             populateTable(invoices);
         }
-
-        document.getElementById('search-bar').addEventListener('input', (e) => {
-            const query = e.target.value.toLowerCase();
-            const rows = document.querySelectorAll('#invoice-table tbody tr');
-
-            rows.forEach(row => {
-                const cells = row.querySelectorAll('td');
-                const matches = Array.from(cells).some(cell =>
-                    cell.textContent.toLowerCase().includes(query)
-                );
-                row.style.display = matches ? '' : 'none';
-            });
-        });
 
         document.addEventListener('DOMContentLoaded', () => {
             populateTable(invoices);
