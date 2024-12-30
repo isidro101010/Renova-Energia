@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Facturación Automático</title>
+    <title>Sistema de Facturación Mejorado</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
     <style>
         body {
@@ -56,11 +56,26 @@
             background-color: #005f99;
             color: white;
         }
+        #progress-bar {
+            display: none;
+            margin: 20px 0;
+            width: 100%;
+            background-color: #ddd;
+            height: 20px;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        #progress {
+            width: 0;
+            height: 100%;
+            background-color: #005f99;
+            transition: width 0.4s ease;
+        }
     </style>
 </head>
 <body>
     <header>
-        <h1>Sistema de Facturación Automático</h1>
+        <h1>Sistema de Facturación Mejorado</h1>
     </header>
     <main>
         <h2>Cargar Factura PDF</h2>
@@ -68,6 +83,9 @@
             <input type="file" id="file-upload" accept=".pdf" required>
             <button type="submit">Procesar Factura</button>
         </form>
+        <div id="progress-bar">
+            <div id="progress"></div>
+        </div>
         <h3>Resultados</h3>
         <table id="invoice-table">
             <thead>
@@ -89,6 +107,7 @@
 
             if (file) {
                 try {
+                    showProgressBar();
                     const arrayBuffer = await file.arrayBuffer();
                     const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
                     const text = await extractTextFromPDF(pdfDoc);
@@ -96,9 +115,11 @@
                     console.log("Texto extraído del PDF:", text); // Depuración
                     const data = processText(text);
                     populateTable(data);
+                    hideProgressBar();
                 } catch (error) {
                     alert("Hubo un error procesando el PDF. Por favor, revisa el archivo.");
                     console.error(error);
+                    hideProgressBar();
                 }
             }
         });
@@ -129,7 +150,9 @@
                 costo_unitario: /Costo Unitario[:\s]+([\d.,]+)/,
                 costo_total: /Costo Total[:\s]+([\d.,]+)/,
                 iva_pagado: /IVA[:\s]+([\d.,]+)/,
+                precio_unitario: /Precio Unitario[:\s]+([\d.,]+)/,
                 precio_total: /Precio Total[:\s]+([\d.,]+)/,
+                iva_cobrado: /IVA Cobrado[:\s]+([\d.,]+)/,
                 total_a_facturar: /Total[:\s]+([\d.,]+)/,
                 condiciones_credito: /Condiciones de Crédito[:\s]+([^\n]+)/
             };
@@ -159,6 +182,28 @@
                 row.appendChild(valueCell);
                 tableBody.appendChild(row);
             }
+        }
+
+        function showProgressBar() {
+            const progressBar = document.getElementById('progress-bar');
+            const progress = document.getElementById('progress');
+            progress.style.width = '0';
+            progressBar.style.display = 'block';
+
+            let width = 0;
+            const interval = setInterval(() => {
+                if (width >= 100) {
+                    clearInterval(interval);
+                } else {
+                    width += 10;
+                    progress.style.width = width + '%';
+                }
+            }, 100);
+        }
+
+        function hideProgressBar() {
+            const progressBar = document.getElementById('progress-bar');
+            progressBar.style.display = 'none';
         }
     </script>
 </body>
