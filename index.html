@@ -236,7 +236,36 @@
             invoices.forEach((invoice, index) => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    ${Object.values(invoice).map(value => `<td>${value}</td>`).join('')}
+                    <td>${invoice.factura}</td>
+                    <td>${invoice.dia}</td>
+                    <td>${invoice.mes}</td>
+                    <td>${invoice.ano}</td>
+                    <td>${invoice.fecha_entrega}</td>
+                    <td>${invoice.cliente}</td>
+                    <td>${invoice.ruc}</td>
+                    <td>${invoice.provincia}</td>
+                    <td>${invoice.ciudad}</td>
+                    <td>${invoice.lista_precio}</td>
+                    <td>${invoice.canal}</td>
+                    <td>${invoice.sub_canal}</td>
+                    <td>${invoice.vendedor}</td>
+                    <td>${invoice.cuentas}</td>
+                    <td>${invoice.codigo}</td>
+                    <td>${invoice.modelo}</td>
+                    <td>${invoice.proveedor}</td>
+                    <td>${invoice.cantidad}</td>
+                    <td>${invoice.costo_unitario}</td>
+                    <td>${invoice.costo_total}</td>
+                    <td>${invoice.iva_pagado}</td>
+                    <td>${invoice.precio_unitario}</td>
+                    <td>${invoice.precio_total}</td>
+                    <td>${invoice.iva_cobrado}</td>
+                    <td>${invoice.total_a_facturar}</td>
+                    <td>${invoice.utilidad}</td>
+                    <td>${invoice.credito}</td>
+                    <td>${invoice.condiciones_credito}</td>
+                    <td>${invoice.pendientes}</td>
+                    <td>${invoice.perdido}</td>
                     <td><button onclick="deleteRow(${index})">Borrar</button></td>
                 `;
                 tableBody.appendChild(row);
