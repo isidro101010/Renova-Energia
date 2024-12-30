@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Facturación con Procesamiento Automático</title>
+    <title>Lector de Facturas</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
     <style>
         body {
@@ -60,15 +60,15 @@
 </head>
 <body>
     <header>
-        <h1>Sistema de Facturación con Procesamiento Automático</h1>
+        <h1>Lector de Facturas PDF</h1>
     </header>
     <main>
-        <h2>Cargar Factura PDF</h2>
+        <h2>Cargar Factura</h2>
         <form id="upload-form">
             <input type="file" id="file-upload" accept=".pdf" required>
-            <button type="submit">Procesar Factura</button>
+            <button type="submit">Leer Factura</button>
         </form>
-        <h3>Resultados</h3>
+        <h3>Datos Extraídos</h3>
         <table id="invoice-table">
             <thead>
                 <tr>
@@ -93,11 +93,11 @@
                     const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
                     const text = await extractTextFromPDF(pdfDoc);
 
-                    console.log("Texto extraído del PDF:", text); // Depuración
+                    console.log("Texto extraído del PDF:", text); // Para depuración
                     const data = processText(text);
                     populateTable(data);
                 } catch (error) {
-                    alert("Hubo un error procesando el PDF. Por favor, revisa el archivo.");
+                    alert("Hubo un error procesando el archivo PDF. Por favor, inténtalo nuevamente.");
                     console.error(error);
                 }
             }
@@ -118,9 +118,6 @@
             const patterns = {
                 factura: /Factura Nro[:\s]+(\d{3}-\d{3}-\d+)/,
                 dia: /(\d{2})\/(\d{2})\/(\d{4})/,
-                mes: /(\d{2})\/(\d{2})\/(\d{4})/,
-                ano: /(\d{2})\/(\d{2})\/(\d{4})/,
-                fecha_entrega: /Fecha de Entrega[:\s]+([\d/]+)/,
                 cliente: /Cliente[:\s]+([^\n]+)/,
                 ruc: /RUC[:\s]+(\d+)/,
                 provincia: /Provincia[:\s]+([^\n]+)/,
@@ -133,8 +130,7 @@
                 costo_total: /Costo Total[:\s]+([\d.,]+)/,
                 iva_pagado: /IVA[:\s]+([\d.,]+)/,
                 precio_total: /Precio Total[:\s]+([\d.,]+)/,
-                total_a_facturar: /Total[:\s]+([\d.,]+)/,
-                condiciones_credito: /Condiciones de Crédito[:\s]+([^\n]+)/
+                total_a_facturar: /Total[:\s]+([\d.,]+)/
             };
 
             const results = {};
