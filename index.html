@@ -27,7 +27,7 @@
         form {
             margin: 20px 0;
         }
-        textarea, button {
+        input, button {
             margin: 5px 0;
             padding: 10px;
             width: 100%;
@@ -78,10 +78,10 @@
     </header>
     <main>
         <section>
-            <h2>Copiar y Pegar Información</h2>
-            <form id="copy-paste-form">
-                <textarea id="data-input" rows="10" placeholder="Pegue aquí los datos de la factura"></textarea>
-                <button type="submit">Procesar Información</button>
+            <h2>Cargar Factura XML</h2>
+            <form id="upload-form">
+                <input type="file" id="file-upload" accept=".xml">
+                <button type="submit">Subir Factura</button>
             </form>
             <input type="text" id="search-bar" placeholder="Buscar por cliente, factura, etc.">
             <table>
@@ -130,54 +130,64 @@
     <script>
         let invoices = JSON.parse(localStorage.getItem("invoices")) || [];
 
-        document.getElementById("copy-paste-form").addEventListener("submit", (e) => {
+        document.getElementById("upload-form").addEventListener("submit", async (e) => {
             e.preventDefault();
-            const data = document.getElementById("data-input").value;
+            const file = document.getElementById("file-upload").files[0];
 
-            if (data) {
-                const invoice = processPastedData(data);
-                invoices.push(invoice);
-                localStorage.setItem("invoices", JSON.stringify(invoices));
-                populateTable();
-                document.getElementById("data-input").value = "";
-            } else {
-                alert("Por favor, pegue los datos de la factura.");
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function () {
+                    const parser = new DOMParser();
+                    const xml = parser.parseFromString(this.result, "application/xml");
+                    const cdata = xml.querySelector("comprobante")?.textContent.trim();
+
+                    if (cdata) {
+                        const cdataXML = new DOMParser().parseFromString(cdata, "application/xml");
+                        const invoice = processXMLData(cdataXML);
+                        invoices.push(invoice);
+                        localStorage.setItem("invoices", JSON.stringify(invoices));
+                        populateTable();
+                    } else {
+                        alert("No se encontró la información esperada en el archivo XML.");
+                    }
+                };
+                reader.readAsText(file);
             }
         });
 
-        function processPastedData(data) {
-            const lines = data.split("\n").map(line => line.trim()).filter(line => line);
-            const parsedData = {
-                factura: lines[0] || "No encontrado",
-                fecha: lines[1] || "No encontrado",
-                fecha_entrega: lines[2] || "No encontrado",
-                cliente: lines[3] || "No encontrado",
-                ruc: lines[4] || "No encontrado",
-                provincia: lines[5] || "No encontrado",
-                ciudad: lines[6] || "No encontrado",
-                lista_precio: lines[7] || "No encontrado",
-                canal: lines[8] || "No encontrado",
-                sub_canal: lines[9] || "No encontrado",
-                vendedor: lines[10] || "No encontrado",
-                cuentas: lines[11] || "No encontrado",
-                codigo: lines[12] || "No encontrado",
-                modelo: lines[13] || "No encontrado",
-                proveedor: lines[14] || "No encontrado",
-                cantidad: lines[15] || "No encontrado",
-                costo_unitario: lines[16] || "No encontrado",
-                costo_total: lines[17] || "No encontrado",
-                iva_pagado: lines[18] || "No encontrado",
-                precio_unitario: lines[19] || "No encontrado",
-                precio_total: lines[20] || "No encontrado",
-                iva_cobrado: lines[21] || "No encontrado",
-                total_facturado: lines[22] || "No encontrado",
-                utilidad: lines[23] || "No encontrado",
-                credito: lines[24] || "No encontrado",
-                condiciones_credito: lines[25] || "No encontrado",
-                pendientes: lines[26] || "No encontrado",
-                perdido: lines[27] || "No encontrado",
+        function processXMLData(xml) {
+            const getTagValue = (path) => xml.querySelector(path)?.textContent.trim() || "No encontrado";
+
+            return {
+                factura: getTagValue("infoTributaria > secuencial"),
+                fecha: getTagValue("infoFactura > fechaEmision"),
+                fecha_entrega: getTagValue("infoFactura > fechaEntrega"),
+                cliente: getTagValue("infoFactura > razonSocialComprador"),
+                ruc: getTagValue("infoFactura > identificacionComprador"),
+                provincia: getTagValue("infoFactura > direccionComprador")?.split("/")[0] || "No encontrado",
+                ciudad: getTagValue("infoFactura > direccionComprador")?.split("/")[1] || "No encontrado",
+                lista_precio: getTagValue("infoFactura > listaPrecio"),
+                canal: getTagValue("infoFactura > canal"),
+                sub_canal: getTagValue("infoFactura > subCanal"),
+                vendedor: getTagValue("infoFactura > vendedor"),
+                cuentas: getTagValue("infoFactura > cuentas"),
+                codigo: getTagValue("detalles > detalle > codigoPrincipal"),
+                modelo: getTagValue("detalles > detalle > descripcion"),
+                proveedor: getTagValue("infoFactura > proveedor"),
+                cantidad: getTagValue("detalles > detalle > cantidad"),
+                costo_unitario: getTagValue("detalles > detalle > precioUnitario"),
+                costo_total: getTagValue("detalles > detalle > precioTotalSinImpuesto"),
+                iva_pagado: getTagValue("infoFactura > totalConImpuestos > totalImpuesto > valor"),
+                precio_unitario: getTagValue("detalles > detalle > precioUnitario"),
+                precio_total: getTagValue("detalles > detalle > precioTotalSinImpuesto"),
+                iva_cobrado: getTagValue("infoFactura > totalConImpuestos > totalImpuesto > valor"),
+                total_facturado: getTagValue("infoFactura > importeTotal"),
+                utilidad: getTagValue("infoFactura > utilidad"),
+                credito: getTagValue("infoFactura > credito"),
+                condiciones_credito: getTagValue("infoFactura > condicionesCredito"),
+                pendientes: getTagValue("infoFactura > pendientes"),
+                perdido: getTagValue("infoFactura > perdido"),
             };
-            return parsedData;
         }
 
         function populateTable() {
