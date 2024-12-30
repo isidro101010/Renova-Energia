@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lector de Facturas</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+    <title>Sistema de Facturación</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.15.349/pdf.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -24,6 +24,10 @@
         }
         main {
             padding: 20px;
+            display: none;
+        }
+        form {
+            margin: 20px 0;
         }
         input, button {
             display: block;
@@ -56,109 +60,207 @@
             background-color: #005f99;
             color: white;
         }
+        #search-bar {
+            margin-bottom: 20px;
+        }
+        #login-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
     </style>
 </head>
 <body>
     <header>
-        <h1>Lector de Facturas PDF</h1>
+        <h1>Sistema de Facturación</h1>
     </header>
-    <main>
-        <h2>Cargar Factura</h2>
-        <form id="upload-form">
-            <input type="file" id="file-upload" accept=".pdf" required>
-            <button type="submit">Leer Factura</button>
+    <div id="login-section">
+        <h2>Acceso al Sistema</h2>
+        <form id="login-form">
+            <input type="password" id="password" placeholder="Contraseña" required>
+            <button type="submit">Ingresar</button>
         </form>
-        <h3>Datos Extraídos</h3>
-        <table id="invoice-table">
-            <thead>
-                <tr>
-                    <th>Campo</th>
-                    <th>Valor</th>
-                </tr>
-            </thead>
-            <tbody>
-                <!-- Aquí se mostrarán los datos extraídos -->
-            </tbody>
-        </table>
+        <p id="login-error" style="color: red; display: none;">Contraseña incorrecta</p>
+    </div>
+    <main>
+        <section id="upload-section">
+            <h2>Cargar Factura PDF</h2>
+            <form id="upload-form">
+                <input type="file" id="file-upload" accept=".pdf" required>
+                <button type="submit">Subir Factura</button>
+            </form>
+            <h3>Buscar Facturas</h3>
+            <input type="text" id="search-bar" placeholder="Buscar por cliente, factura, etc.">
+            <table id="invoice-table">
+                <thead>
+                    <tr>
+                        <th>Factura</th>
+                        <th>Día</th>
+                        <th>Mes</th>
+                        <th>Año</th>
+                        <th>Fecha de Entrega</th>
+                        <th>Cliente</th>
+                        <th>RUC</th>
+                        <th>Provincia</th>
+                        <th>Ciudad</th>
+                        <th>Lista Precio</th>
+                        <th>Canal</th>
+                        <th>Sub Canal</th>
+                        <th>Vendedor</th>
+                        <th>Cuentas</th>
+                        <th>Código</th>
+                        <th>Modelo</th>
+                        <th>Proveedor</th>
+                        <th>Cantidad</th>
+                        <th>Costo Unitario</th>
+                        <th>Costo Total</th>
+                        <th>IVA Pagado</th>
+                        <th>Precio Unitario</th>
+                        <th>Precio Total</th>
+                        <th>IVA Cobrado</th>
+                        <th>Total a Facturar</th>
+                        <th>Utilidad</th>
+                        <th>Crédito</th>
+                        <th>Condiciones de Crédito</th>
+                        <th>Pendientes</th>
+                        <th>Perdido</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Aquí se mostrarán las facturas -->
+                </tbody>
+            </table>
+        </section>
     </main>
+    <footer>
+        <p>Sistema de Facturación - 2024</p>
+    </footer>
     <script>
+        const PASSWORD = "mcm352"; // Contraseña para acceder
+        let invoices = JSON.parse(localStorage.getItem("invoices")) || []; // Recuperar facturas guardadas
+
+        document.getElementById("login-form").addEventListener("submit", (e) => {
+            e.preventDefault();
+            const password = document.getElementById("password").value;
+            if (password === PASSWORD) {
+                document.getElementById("login-section").style.display = "none";
+                document.querySelector("main").style.display = "block";
+            } else {
+                document.getElementById("login-error").style.display = "block";
+            }
+        });
+
+        document.addEventListener("DOMContentLoaded", () => {
+            populateTable(invoices);
+        });
+
         document.getElementById('upload-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const fileInput = document.getElementById('file-upload');
             const file = fileInput.files[0];
 
             if (file) {
-                try {
-                    const arrayBuffer = await file.arrayBuffer();
-                    const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
-                    const text = await extractTextFromPDF(pdfDoc);
+                const reader = new FileReader();
+                reader.onload = async function () {
+                    const typedArray = new Uint8Array(this.result);
+                    const pdf = await pdfjsLib.getDocument(typedArray).promise;
 
-                    console.log("Texto extraído del PDF:", text); // Para depuración
-                    const data = processText(text);
-                    populateTable(data);
-                } catch (error) {
-                    alert("Hubo un error procesando el archivo PDF. Por favor, inténtalo nuevamente.");
-                    console.error(error);
-                }
+                    const text = await extractTextFromPDF(pdf);
+                    const newInvoice = processText(text);
+                    invoices.push(newInvoice);
+                    localStorage.setItem("invoices", JSON.stringify(invoices)); // Guardar en Local Storage
+                    populateTable(invoices);
+                };
+                reader.readAsArrayBuffer(file);
             }
         });
 
-        async function extractTextFromPDF(pdfDoc) {
-            let fullText = '';
-            const pages = pdfDoc.getPages();
-            for (const page of pages) {
-                const textContent = await page.getTextContent();
-                const pageText = textContent.items.map(item => item.str).join(' ');
-                fullText += pageText + '\n';
+        async function extractTextFromPDF(pdf) {
+            let text = '';
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const content = await page.getTextContent();
+                text += content.items.map(item => item.str).join(' ') + '\n';
             }
-            return fullText;
+            return text.trim();
         }
 
         function processText(text) {
-            const patterns = {
-                factura: /Factura Nro[:\s]+(\d{3}-\d{3}-\d+)/,
-                dia: /(\d{2})\/(\d{2})\/(\d{4})/,
-                cliente: /Cliente[:\s]+([^\n]+)/,
-                ruc: /RUC[:\s]+(\d+)/,
-                provincia: /Provincia[:\s]+([^\n]+)/,
-                ciudad: /Ciudad[:\s]+([^\n]+)/,
-                vendedor: /Vendedor[:\s]+([^\n]+)/,
-                codigo: /Código[:\s]+([^\n]+)/,
-                modelo: /Modelo[:\s]+([^\n]+)/,
-                cantidad: /Cantidad[:\s]+([\d.,]+)/,
-                costo_unitario: /Costo Unitario[:\s]+([\d.,]+)/,
-                costo_total: /Costo Total[:\s]+([\d.,]+)/,
-                iva_pagado: /IVA[:\s]+([\d.,]+)/,
-                precio_total: /Precio Total[:\s]+([\d.,]+)/,
-                total_a_facturar: /Total[:\s]+([\d.,]+)/
+            const factura = text.match(/Factura Nro[:\s]+(\d+-\d+-\d+)/)?.[1] || "";
+            const cliente = text.match(/Cliente[:\s]+(.+)/)?.[1] || "";
+            const ruc = text.match(/RUC[:\s]+(\d+)/)?.[1] || "";
+            const fechaEntrega = text.match(/Fecha de Entrega[:\s]+([\d\/]+)/)?.[1] || "";
+            const totalFacturado = text.match(/VALOR TOTAL[:\s]+([\d.,]+)/)?.[1]?.replace(",", ".") || "";
+
+            return {
+                factura,
+                dia: fechaEntrega.split("/")[0] || "",
+                mes: fechaEntrega.split("/")[1] || "",
+                ano: fechaEntrega.split("/")[2] || "",
+                fecha_entrega: fechaEntrega,
+                cliente,
+                ruc,
+                provincia: "",
+                ciudad: "",
+                lista_precio: "",
+                canal: "",
+                sub_canal: "",
+                vendedor: "",
+                cuentas: "",
+                codigo: "",
+                modelo: "",
+                proveedor: "",
+                cantidad: "",
+                costo_unitario: "",
+                costo_total: totalFacturado,
+                iva_pagado: "",
+                precio_unitario: "",
+                precio_total: "",
+                iva_cobrado: "",
+                total_a_facturar: totalFacturado,
+                utilidad: "",
+                credito: "",
+                condiciones_credito: "",
+                pendientes: "",
+                perdido: "",
             };
-
-            const results = {};
-            for (const [field, regex] of Object.entries(patterns)) {
-                const match = text.match(regex);
-                results[field] = match ? match[1] : "No encontrado";
-            }
-
-            return results;
         }
 
-        function populateTable(data) {
+        function populateTable(invoices) {
             const tableBody = document.getElementById('invoice-table').querySelector('tbody');
-            tableBody.innerHTML = '';
+            tableBody.innerHTML = ''; // Limpiar datos previos
 
-            for (const [field, value] of Object.entries(data)) {
+            invoices.forEach((invoice, index) => {
                 const row = document.createElement('tr');
-                const fieldCell = document.createElement('td');
-                const valueCell = document.createElement('td');
-
-                fieldCell.textContent = field.charAt(0).toUpperCase() + field.slice(1).replace(/_/g, ' ');
-                valueCell.textContent = value;
-
-                row.appendChild(fieldCell);
-                row.appendChild(valueCell);
+                row.innerHTML = `
+                    ${Object.values(invoice).map(value => `<td>${value}</td>`).join('')}
+                    <td><button onclick="deleteRow(${index})">Borrar</button></td>
+                `;
                 tableBody.appendChild(row);
-            }
+            });
         }
+
+        function deleteRow(index) {
+            invoices.splice(index, 1); // Eliminar factura
+            localStorage.setItem("invoices", JSON.stringify(invoices)); // Actualizar Local Storage
+            populateTable(invoices);
+        }
+
+        document.getElementById('search-bar').addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            const rows = document.querySelectorAll('#invoice-table tbody tr');
+
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                const matches = Array.from(cells).some(cell =>
+                    cell.textContent.toLowerCase().includes(query)
+                );
+                row.style.display = matches ? '' : 'none';
+            });
+        });
     </script>
 </body>
 </html>
