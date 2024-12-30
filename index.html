@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Facturación Completo</title>
+    <title>Sistema de Facturación Inteligente</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.15.349/pdf.min.js"></script>
     <style>
         body {
@@ -18,9 +18,6 @@
             color: white;
             padding: 10px;
             text-align: center;
-        }
-        h1 {
-            margin: 0;
         }
         main {
             padding: 20px;
@@ -48,7 +45,6 @@
             border-collapse: collapse;
             margin: 20px 0;
             font-size: 12px;
-            table-layout: auto;
         }
         th, td {
             border: 1px solid #ddd;
@@ -69,7 +65,7 @@
 </head>
 <body>
     <header>
-        <h1>Sistema de Facturación Completo</h1>
+        <h1>Sistema de Facturación Inteligente</h1>
     </header>
     <main>
         <section>
@@ -78,7 +74,7 @@
                 <input type="file" id="file-upload" accept=".pdf">
                 <button type="submit">Subir Factura</button>
             </form>
-            <input type="text" id="search-bar" placeholder="Buscar por cliente o factura">
+            <input type="text" id="search-bar" placeholder="Buscar por cliente, factura, etc.">
             <table>
                 <thead>
                     <tr>
@@ -106,22 +102,22 @@
                         <th>Precio Unitario</th>
                         <th>Precio Total</th>
                         <th>IVA Cobrado</th>
-                        <th>Total a Facturar</th>
+                        <th>Total Facturado</th>
                         <th>Utilidad</th>
                         <th>Crédito</th>
-                        <th>Condiciones de Crédito</th>
+                        <th>Condiciones Crédito</th>
                         <th>Pendientes</th>
                         <th>Perdido</th>
                     </tr>
                 </thead>
                 <tbody id="invoice-table">
-                    <!-- Aquí se insertarán las filas dinámicamente -->
+                    <!-- Datos serán añadidos dinámicamente -->
                 </tbody>
             </table>
         </section>
     </main>
     <footer>
-        <p>Sistema de Facturación - 2024</p>
+        <p>Sistema de Facturación Inteligente - 2024</p>
     </footer>
     <script>
         let invoices = JSON.parse(localStorage.getItem("invoices")) || [];
@@ -137,7 +133,7 @@
                     const pdf = await pdfjsLib.getDocument(typedArray).promise;
 
                     const text = await extractTextFromPDF(pdf);
-                    const invoice = processText(text);
+                    const invoice = processInvoiceData(text);
                     invoices.push(invoice);
                     localStorage.setItem("invoices", JSON.stringify(invoices));
                     populateTable();
@@ -156,13 +152,13 @@
             return text.trim();
         }
 
-        function processText(text) {
+        function processInvoiceData(text) {
+            // Usa IA o regex avanzados para buscar patrones
             const patterns = {
                 factura: /Factura Nro[:\s]+(\d+-\d+-\d+)/,
                 dia: /Fecha[:\s]+(\d{2})/,
                 mes: /Fecha[:\s]+\d{2}\/(\d{2})/,
                 ano: /Fecha[:\s]+\d{2}\/\d{2}\/(\d{4})/,
-                fecha_entrega: /Fecha de Entrega[:\s]+([\d\/]+)/,
                 cliente: /Cliente[:\s]+(.+)/,
                 ruc: /RUC[:\s]+(\d+)/,
                 provincia: /Provincia[:\s]+(.+)/,
@@ -182,10 +178,10 @@
                 precio_unitario: /Precio Unitario[:\s]+([\d.,]+)/,
                 precio_total: /Precio Total[:\s]+([\d.,]+)/,
                 iva_cobrado: /IVA Cobrado[:\s]+([\d.,]+)/,
-                total_facturar: /Total a Facturar[:\s]+([\d.,]+)/,
+                total_facturado: /Total Facturado[:\s]+([\d.,]+)/,
                 utilidad: /Utilidad[:\s]+([\d.,]+)/,
                 credito: /Crédito[:\s]+(.+)/,
-                condiciones_credito: /Condiciones de Crédito[:\s]+(.+)/,
+                condiciones_credito: /Condiciones Crédito[:\s]+(.+)/,
                 pendientes: /Pendientes[:\s]+(.+)/,
                 perdido: /Perdido[:\s]+(.+)/,
             };
@@ -223,4 +219,4 @@
         });
     </script>
 </body>
-</html>
+</html> 
