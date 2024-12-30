@@ -63,6 +63,13 @@
         tbody tr:hover {
             background-color: #f1f1f1;
         }
+        .delete-btn {
+            background-color: red;
+            color: white;
+            border: none;
+            padding: 5px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -81,9 +88,7 @@
                 <thead>
                     <tr>
                         <th>Factura</th>
-                        <th>Día</th>
-                        <th>Mes</th>
-                        <th>Año</th>
+                        <th>Fecha</th>
                         <th>Fecha Entrega</th>
                         <th>Cliente</th>
                         <th>RUC</th>
@@ -110,6 +115,7 @@
                         <th>Condiciones Crédito</th>
                         <th>Pendientes</th>
                         <th>Perdido</th>
+                        <th>Eliminar</th>
                     </tr>
                 </thead>
                 <tbody id="invoice-table">
@@ -133,48 +139,54 @@
                 reader.onload = function () {
                     const parser = new DOMParser();
                     const xml = parser.parseFromString(this.result, "application/xml");
-                    const invoice = processInvoiceData(xml);
-                    invoices.push(invoice);
-                    localStorage.setItem("invoices", JSON.stringify(invoices));
-                    populateTable();
+                    const cdata = xml.querySelector("comprobante")?.textContent.trim();
+
+                    if (cdata) {
+                        const cdataXML = new DOMParser().parseFromString(cdata, "application/xml");
+                        const invoice = processInvoiceData(cdataXML);
+                        invoices.push(invoice);
+                        localStorage.setItem("invoices", JSON.stringify(invoices));
+                        populateTable();
+                    } else {
+                        alert("No se encontró la información esperada en el archivo XML.");
+                    }
                 };
                 reader.readAsText(file);
             }
         });
 
         function processInvoiceData(xml) {
-            const getTagValue = (tag) => xml.getElementsByTagName(tag)[0]?.textContent || "No encontrado";
+            const getTagValue = (path) => xml.querySelector(path)?.textContent.trim() || "No encontrado";
+
             return {
-                factura: getTagValue("FacturaNro"),
-                dia: getTagValue("Fecha").split("/")[0] || "No encontrado",
-                mes: getTagValue("Fecha").split("/")[1] || "No encontrado",
-                ano: getTagValue("Fecha").split("/")[2] || "No encontrado",
-                fecha_entrega: getTagValue("FechaEntrega") || "No encontrado",
-                cliente: getTagValue("Cliente") || "No encontrado",
-                ruc: getTagValue("RUC") || "No encontrado",
-                provincia: getTagValue("Provincia") || "No encontrado",
-                ciudad: getTagValue("Ciudad") || "No encontrado",
-                lista_precio: getTagValue("ListaPrecio") || "No encontrado",
-                canal: getTagValue("Canal") || "No encontrado",
-                sub_canal: getTagValue("SubCanal") || "No encontrado",
-                vendedor: getTagValue("Vendedor") || "No encontrado",
-                cuentas: getTagValue("Cuentas") || "No encontrado",
-                codigo: getTagValue("Codigo") || "No encontrado",
-                modelo: getTagValue("Modelo") || "No encontrado",
-                proveedor: getTagValue("Proveedor") || "No encontrado",
-                cantidad: getTagValue("Cantidad") || "No encontrado",
-                costo_unitario: getTagValue("CostoUnitario") || "No encontrado",
-                costo_total: getTagValue("CostoTotal") || "No encontrado",
-                iva_pagado: getTagValue("IVAPagado") || "No encontrado",
-                precio_unitario: getTagValue("PrecioUnitario") || "No encontrado",
-                precio_total: getTagValue("PrecioTotal") || "No encontrado",
-                iva_cobrado: getTagValue("IVACobrado") || "No encontrado",
-                total_facturado: getTagValue("TotalFacturado") || "No encontrado",
-                utilidad: getTagValue("Utilidad") || "No encontrado",
-                credito: getTagValue("Credito") || "No encontrado",
-                condiciones_credito: getTagValue("CondicionesCredito") || "No encontrado",
-                pendientes: getTagValue("Pendientes") || "No encontrado",
-                perdido: getTagValue("Perdido") || "No encontrado",
+                factura: getTagValue("infoTributaria > secuencial"),
+                fecha: getTagValue("infoFactura > fechaEmision"),
+                fecha_entrega: getTagValue("infoFactura > fechaEntrega"),
+                cliente: getTagValue("infoFactura > razonSocialComprador"),
+                ruc: getTagValue("infoFactura > identificacionComprador"),
+                provincia: getTagValue("infoFactura > direccionComprador")?.split("/")[0] || "No encontrado",
+                ciudad: getTagValue("infoFactura > direccionComprador")?.split("/")[1] || "No encontrado",
+                lista_precio: getTagValue("infoFactura > listaPrecio"),
+                canal: getTagValue("infoFactura > canal"),
+                sub_canal: getTagValue("infoFactura > subCanal"),
+                vendedor: getTagValue("infoFactura > vendedor"),
+                cuentas: getTagValue("infoFactura > cuentas"),
+                codigo: getTagValue("detalles > detalle > codigoPrincipal"),
+                modelo: getTagValue("detalles > detalle > descripcion"),
+                proveedor: getTagValue("infoFactura > proveedor"),
+                cantidad: getTagValue("detalles > detalle > cantidad"),
+                costo_unitario: getTagValue("detalles > detalle > precioUnitario"),
+                costo_total: getTagValue("detalles > detalle > precioTotalSinImpuesto"),
+                iva_pagado: getTagValue("infoFactura > totalConImpuestos > totalImpuesto > valor"),
+                precio_unitario: getTagValue("detalles > detalle > precioUnitario"),
+                precio_total: getTagValue("detalles > detalle > precioTotalSinImpuesto"),
+                iva_cobrado: getTagValue("infoFactura > totalConImpuestos > totalImpuesto > valor"),
+                total_facturado: getTagValue("infoFactura > importeTotal"),
+                utilidad: getTagValue("infoFactura > utilidad"),
+                credito: getTagValue("infoFactura > credito"),
+                condiciones_credito: getTagValue("infoFactura > condicionesCredito"),
+                pendientes: getTagValue("infoFactura > pendientes"),
+                perdido: getTagValue("infoFactura > perdido"),
             };
         }
 
@@ -182,9 +194,20 @@
             const tbody = document.getElementById("invoice-table");
             tbody.innerHTML = "";
 
-            invoices.forEach((invoice) => {
+            invoices.forEach((invoice, index) => {
                 const row = document.createElement("tr");
                 row.innerHTML = Object.values(invoice).map((value) => `<td>${value}</td>`).join("");
+                const deleteBtn = document.createElement("button");
+                deleteBtn.textContent = "Eliminar";
+                deleteBtn.classList.add("delete-btn");
+                deleteBtn.addEventListener("click", () => {
+                    invoices.splice(index, 1);
+                    localStorage.setItem("invoices", JSON.stringify(invoices));
+                    populateTable();
+                });
+                const deleteCell = document.createElement("td");
+                deleteCell.appendChild(deleteBtn);
+                row.appendChild(deleteCell);
                 tbody.appendChild(row);
             });
         }
